@@ -238,9 +238,19 @@ table.flow-table{width:100%;border-collapse:collapse;font-size:12px;}
     </div>
   </div>
   <div class="sidebar-footer">
-    <div class="user-row">
-      <div class="avatar">TH</div>
-      <div><div class="user-name">Thiago</div><div class="user-role">Broker</div></div>
+    <!-- Botão Admin (só aparece para nível 5) -->
+    <div id="sidebar-admin-btn" onclick="openAdminPanel()" style="display:none;margin-bottom:8px;padding:9px 12px;border-radius:8px;cursor:pointer;background:rgba(0,191,165,0.1);border:1px solid rgba(0,191,165,0.25);display:none;align-items:center;gap:8px;font-size:11px;font-weight:700;color:#00BFA5;letter-spacing:.04em;transition:background .15s;">
+      <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="7" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M3 17c0-3.314 3.134-6 7-6s7 2.686 7 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M14 4v5M11.5 6.5h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      Gerenciar Usuários
+    </div>
+    <div class="user-row" style="justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:10px;overflow:hidden;">
+        <div class="avatar" id="sidebar-avatar">TH</div>
+        <div style="overflow:hidden;"><div class="user-name" id="sidebar-user-name">Thiago</div><div class="user-role" id="sidebar-user-role">Broker</div></div>
+      </div>
+      <button onclick="doLogout()" title="Sair" style="background:none;border:none;cursor:pointer;color:rgba(255,255,255,0.3);padding:4px;border-radius:6px;display:flex;flex-shrink:0;transition:color .15s;" onmouseover="this.style.color='#e06060'" onmouseout="this.style.color='rgba(255,255,255,0.3)'">
+        <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M7 3H4a1 1 0 00-1 1v12a1 1 0 001 1h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M13 14l3-4-3-4M16 10H8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
     </div>
   </div>
 </nav>
@@ -658,7 +668,68 @@ table.flow-table{width:100%;border-collapse:collapse;font-size:12px;}
 
   </div>
 </div>
-<div class="toast" id="toast"> id="toast"></div>
+<div class="toast" id="toast"></div>
+
+<!-- ══ PAINEL ADMIN ══ -->
+<div class="overlay" id="admin-overlay" style="display:none;background:rgba(15,25,35,.7);align-items:center;justify-content:center;">
+  <div style="background:#FFFFFF;border-radius:16px;width:820px;max-width:96vw;max-height:92vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 32px 80px rgba(0,0,0,.35);">
+    <!-- Header -->
+    <div style="padding:20px 28px 16px;border-bottom:1px solid #E2E8F0;display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div style="font-size:15px;font-weight:700;color:#0F1923;">Gerenciar Usuários</div>
+        <div style="font-size:12px;color:#687280;margin-top:2px;">Criar, editar e desativar contas da plataforma</div>
+      </div>
+      <button onclick="closeAdminPanel()" style="background:none;border:none;cursor:pointer;color:#8A9BB0;font-size:20px;line-height:1;" title="Fechar">×</button>
+    </div>
+    <!-- Formulário novo usuário -->
+    <div style="padding:18px 28px;border-bottom:1px solid #F0F2F5;background:#F8FAFB;">
+      <div style="font-size:12px;font-weight:700;color:#687280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;">Novo Usuário</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:10px;align-items:end;">
+        <div>
+          <label style="font-size:11px;font-weight:600;color:#687280;display:block;margin-bottom:4px;">Username</label>
+          <input id="au-username" type="text" placeholder="login.usuario" style="width:100%;padding:8px 10px;border:1.5px solid #E2E8F0;border-radius:7px;font-size:12px;font-family:'Montserrat',sans-serif;color:#0F1923;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='#00BFA5'" onblur="this.style.borderColor='#E2E8F0'"/>
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:600;color:#687280;display:block;margin-bottom:4px;">Nome Completo</label>
+          <input id="au-name" type="text" placeholder="Nome" style="width:100%;padding:8px 10px;border:1.5px solid #E2E8F0;border-radius:7px;font-size:12px;font-family:'Montserrat',sans-serif;color:#0F1923;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='#00BFA5'" onblur="this.style.borderColor='#E2E8F0'"/>
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:600;color:#687280;display:block;margin-bottom:4px;">Nível</label>
+          <select id="au-nivel" style="width:100%;padding:8px 10px;border:1.5px solid #E2E8F0;border-radius:7px;font-size:12px;font-family:'Montserrat',sans-serif;color:#0F1923;outline:none;background:#fff;box-sizing:border-box;">
+            <option value="1">1 – Broker</option>
+            <option value="2">2 – Líder de Squad</option>
+            <option value="3">3 – Gerência Mesa RV</option>
+            <option value="4">4 – Head</option>
+            <option value="5">5 – Admin</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:600;color:#687280;display:block;margin-bottom:4px;">Senha</label>
+          <input id="au-pass" type="password" placeholder="••••••" style="width:100%;padding:8px 10px;border:1.5px solid #E2E8F0;border-radius:7px;font-size:12px;font-family:'Montserrat',sans-serif;color:#0F1923;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='#00BFA5'" onblur="this.style.borderColor='#E2E8F0'"/>
+        </div>
+        <button onclick="adminCreateUser()" style="padding:8px 16px;background:linear-gradient(135deg,#00BFA5,#00897B);color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:'Montserrat',sans-serif;">+ Criar</button>
+      </div>
+      <div id="au-error" style="display:none;color:#991B1B;font-size:12px;margin-top:8px;background:#FEE2E2;padding:6px 10px;border-radius:6px;"></div>
+    </div>
+    <!-- Tabela de usuários -->
+    <div style="flex:1;overflow:auto;padding:20px 28px;">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead>
+          <tr style="border-bottom:2px solid #E2E8F0;text-align:left;">
+            <th style="padding:8px 12px;color:#687280;font-weight:700;letter-spacing:.04em;text-transform:uppercase;font-size:11px;">Username</th>
+            <th style="padding:8px 12px;color:#687280;font-weight:700;letter-spacing:.04em;text-transform:uppercase;font-size:11px;">Nome</th>
+            <th style="padding:8px 12px;color:#687280;font-weight:700;letter-spacing:.04em;text-transform:uppercase;font-size:11px;">Nível</th>
+            <th style="padding:8px 12px;color:#687280;font-weight:700;letter-spacing:.04em;text-transform:uppercase;font-size:11px;">Status</th>
+            <th style="padding:8px 12px;color:#687280;font-weight:700;letter-spacing:.04em;text-transform:uppercase;font-size:11px;">Ações</th>
+          </tr>
+        </thead>
+        <tbody id="admin-user-tbody">
+          <tr><td colspan="5" style="padding:24px;text-align:center;color:#8A9BB0;">Carregando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
 
 <script>
 // ═══════════════════════════════════════════
@@ -1352,12 +1423,114 @@ async function doLogin() {
     authToken = data.access_token;
     currentUser = data.user;
     sessionStorage.setItem('bo_token', authToken);
+    sessionStorage.setItem('bo_user', JSON.stringify(data.user));
     document.getElementById('login-overlay').style.display='none';
-    document.getElementById('user-name').textContent = data.user.name||data.user.username;
+    // Atualiza sidebar
+    var nome = data.user.name || data.user.username;
+    var initials = nome.split(' ').map(function(p){return p[0];}).slice(0,2).join('').toUpperCase();
+    document.getElementById('sidebar-avatar').textContent = initials;
+    document.getElementById('sidebar-user-name').textContent = nome;
+    document.getElementById('sidebar-user-role').textContent = data.user.nivel_label || 'Broker';
+    if(data.user.nivel >= 5) {
+      var btn = document.getElementById('sidebar-admin-btn');
+      btn.style.display = 'flex';
+    }
     initApp();
   } catch(e) {
     errEl.textContent='Erro de conexão com o servidor.';errEl.style.display='block';
   }
+}
+
+function doLogout() {
+  sessionStorage.removeItem('bo_token');
+  sessionStorage.removeItem('bo_user');
+  authToken = '';
+  currentUser = null;
+  location.reload();
+}
+
+// ══ PAINEL ADMIN ══
+function openAdminPanel() {
+  document.getElementById('admin-overlay').style.display='flex';
+  adminLoadUsers();
+}
+function closeAdminPanel() {
+  document.getElementById('admin-overlay').style.display='none';
+}
+
+async function adminLoadUsers() {
+  var tbody = document.getElementById('admin-user-tbody');
+  tbody.innerHTML='<tr><td colspan="5" style="padding:24px;text-align:center;color:#8A9BB0;">Carregando...</td></tr>';
+  try {
+    var res = await fetch(API_BASE+'/api/users/', {headers: apiHeaders()});
+    if(!res.ok){ tbody.innerHTML='<tr><td colspan="5" style="padding:24px;text-align:center;color:#a33;">Erro ao carregar usuários.</td></tr>';return; }
+    var users = await res.json();
+    if(!users.length){ tbody.innerHTML='<tr><td colspan="5" style="padding:24px;text-align:center;color:#8A9BB0;">Nenhum usuário cadastrado.</td></tr>';return; }
+    var nivelMap={1:'Broker',2:'Líder de Squad',3:'Gerência Mesa RV',4:'Head',5:'Admin'};
+    tbody.innerHTML = users.map(function(u){
+      var ativoStr = u.ativo ? '<span style="color:#1b6b52;background:#e7f2ee;padding:2px 8px;border-radius:10px;font-weight:700;">Ativo</span>'
+                              : '<span style="color:#a33;background:#fcebeb;padding:2px 8px;border-radius:10px;font-weight:700;">Inativo</span>';
+      return '<tr style="border-bottom:1px solid #F0F2F5;">'
+        +'<td style="padding:10px 12px;font-weight:600;color:#0F1923;">'+u.username+'</td>'
+        +'<td style="padding:10px 12px;color:#4A5568;">'+u.name+'</td>'
+        +'<td style="padding:10px 12px;color:#4A5568;">'+u.nivel+' – '+(nivelMap[u.nivel]||'')+'</td>'
+        +'<td style="padding:10px 12px;">'+ativoStr+'</td>'
+        +'<td style="padding:10px 12px;">'
+          +(u.ativo
+            ?'<button onclick="adminToggleAtivo('+u.id+',false)" style="margin-right:6px;padding:4px 10px;border:1px solid #e2e8f0;border-radius:6px;background:#fff;cursor:pointer;font-size:11px;font-family:\'Montserrat\',sans-serif;color:#687280;">Desativar</button>'
+            :'<button onclick="adminToggleAtivo('+u.id+',true)" style="margin-right:6px;padding:4px 10px;border:1px solid #00BFA5;border-radius:6px;background:#fff;cursor:pointer;font-size:11px;font-family:\'Montserrat\',sans-serif;color:#00897B;">Reativar</button>'
+          )
+          +'<button onclick="adminDeleteUser('+u.id+',\''+u.username+'\')" style="padding:4px 10px;border:1px solid #fca5a5;border-radius:6px;background:#fff;cursor:pointer;font-size:11px;font-family:\'Montserrat\',sans-serif;color:#b91c1c;">Excluir</button>'
+        +'</td></tr>';
+    }).join('');
+  } catch(e) {
+    tbody.innerHTML='<tr><td colspan="5" style="padding:24px;text-align:center;color:#a33;">Erro de conexão.</td></tr>';
+  }
+}
+
+async function adminCreateUser() {
+  var errEl = document.getElementById('au-error');
+  errEl.style.display='none';
+  var payload = {
+    username: document.getElementById('au-username').value.trim(),
+    name: document.getElementById('au-name').value.trim(),
+    nivel: parseInt(document.getElementById('au-nivel').value),
+    password: document.getElementById('au-pass').value,
+  };
+  if(!payload.username||!payload.name||!payload.password){
+    errEl.textContent='Preencha username, nome e senha.';errEl.style.display='block';return;
+  }
+  try {
+    var res = await fetch(API_BASE+'/api/users/', {method:'POST',headers:apiHeaders(),body:JSON.stringify(payload)});
+    var data = await res.json();
+    if(!res.ok){ errEl.textContent=data.detail||'Erro ao criar usuário.';errEl.style.display='block';return; }
+    document.getElementById('au-username').value='';
+    document.getElementById('au-name').value='';
+    document.getElementById('au-pass').value='';
+    showToast('Usuário criado com sucesso!');
+    adminLoadUsers();
+  } catch(e) {
+    errEl.textContent='Erro de conexão.';errEl.style.display='block';
+  }
+}
+
+async function adminToggleAtivo(userId, ativo) {
+  try {
+    var res = await fetch(API_BASE+'/api/users/'+userId, {method:'PATCH',headers:apiHeaders(),body:JSON.stringify({ativo:ativo})});
+    if(!res.ok){ showToast('Erro ao atualizar usuário.'); return; }
+    showToast(ativo?'Usuário reativado.':'Usuário desativado.');
+    adminLoadUsers();
+  } catch(e) { showToast('Erro de conexão.'); }
+}
+
+async function adminDeleteUser(userId, username) {
+  if(!confirm('Excluir o usuário "'+username+'"? Esta ação não pode ser desfeita.')) return;
+  try {
+    var res = await fetch(API_BASE+'/api/users/'+userId, {method:'DELETE',headers:apiHeaders()});
+    if(res.status===204){ showToast('Usuário excluído.'); adminLoadUsers(); return; }
+    var data = await res.json();
+    showToast(data.detail||'Erro ao excluir usuário.');
+  } catch(e) { showToast('Erro de conexão.'); }
 }
 
 document.getElementById('login-pass').addEventListener('keydown', function(e){ if(e.key==='Enter') doLogin(); });
@@ -1401,6 +1574,21 @@ saveFlow = function() { _origSaveFlow(); syncFlowToAPI(); };
 setDates();
 if(authToken) {
   document.getElementById('login-overlay').style.display='none';
+  // Restaura dados do usuário do sessionStorage
+  try {
+    var savedUser = JSON.parse(sessionStorage.getItem('bo_user') || 'null');
+    if(savedUser) {
+      currentUser = savedUser;
+      var nome = savedUser.name || savedUser.username;
+      var initials = nome.split(' ').map(function(p){return p[0];}).slice(0,2).join('').toUpperCase();
+      document.getElementById('sidebar-avatar').textContent = initials;
+      document.getElementById('sidebar-user-name').textContent = nome;
+      document.getElementById('sidebar-user-role').textContent = savedUser.nivel_label || 'Broker';
+      if(savedUser.nivel >= 5) {
+        document.getElementById('sidebar-admin-btn').style.display = 'flex';
+      }
+    }
+  } catch(e) {}
   initApp();
 } else {
   loadFlow(); renderFlow(); updateFlowBadge();
