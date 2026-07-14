@@ -1527,24 +1527,32 @@ async function adminLoadUsers(){
     if(res.status===403){cont.innerHTML='<div style="text-align:center;padding:32px;color:#991B1B;">Sem permissão.</div>';return;}
     var users=await res.json();
     if(!users.length){cont.innerHTML='<div style="text-align:center;padding:32px;color:#687280;">Nenhum usuário cadastrado.</div>';return;}
-    var html='<table class="adm-tbl"><thead><tr><th>Nome</th><th>Usuário</th><th>Nível</th><th>Status</th><th>Ações</th></tr></thead><tbody>';
+    var rows='';
     users.forEach(function(u){
       var bCls=u.ativo?'n'+u.nivel:'off';
-      var bTxt=u.ativo?(NIVEL_MAP[u.nivel]||u.nivel_label):'Inativo';
-      html+='<tr>'
-        +'<td><strong>'+_esc(u.full_name||u.name)+'</strong></td>'
+      var bTxt=u.ativo?(NIVEL_MAP[u.nivel]||u.nivel_label||''):'Inativo';
+      var nome=_esc(u.full_name||u.name||'');
+      var uData=JSON.stringify(u).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      rows+='<tr>'
+        +'<td><strong>'+nome+'</strong></td>'
         +'<td style="color:#687280;">'+_esc(u.username)+'</td>'
         +'<td><span class="adm-badge '+bCls+'">'+bTxt+'</span></td>'
         +'<td><span class="adm-badge '+(u.ativo?'n1':'off')+'">'+(u.ativo?'Ativo':'Inativo')+'</span></td>'
         +'<td><div style="display:flex;gap:8px;">'
-          +'<button class="adm-btn-sm adm-btn-edit" onclick='openEditUser('+JSON.stringify(u).replace(/'/g,"&#39;")+')'>Editar</button>'
-          +'<button class="adm-btn-sm adm-btn-del" onclick="adminDeleteUser('+u.id+',''+_esc(u.full_name||u.name)+'')">Excluir</button>'
+          +'<button class="adm-btn-sm adm-btn-edit" onclick="admEdit('+u.id+')">Editar</button>'
+          +'<button class="adm-btn-sm adm-btn-del" onclick="adminDeleteUser('+u.id+',\''+nome+'\')">Excluir</button>'
         +'</div></td>'
       +'</tr>';
     });
-    html+='</tbody></table>';
-    cont.innerHTML=html;
+    cont.innerHTML='<table class="adm-tbl"><thead><tr><th>Nome</th><th>Usuário</th><th>Nível</th><th>Status</th><th>Ações</th></tr></thead><tbody>'+rows+'</tbody></table>';
+    // Guardar usuários para o modal de edição
+    window._admUsers=users;
   }catch(e){cont.innerHTML='<div style="text-align:center;padding:32px;color:#991B1B;">Erro de conexão.</div>';}
+}
+
+function admEdit(id){
+  var u=(window._admUsers||[]).find(function(x){return x.id===id;});
+  if(u)openEditUser(u);
 }
 
 async function adminCreateUser(){
