@@ -762,12 +762,6 @@ table.flow-table{width:100%;border-collapse:collapse;font-size:12px;}
 // ═══════════════════════════════════════════
 //  SHARED UTILITIES
 // ═══════════════════════════════════════════
-
-
-<script>
-// ═══════════════════════════════════════════
-//  SHARED UTILITIES
-// ═══════════════════════════════════════════
 function uid(){return 't_'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);}
 function todayISO(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function fmtDateShort(iso){if(!iso)return '';var p=iso.split('-');var m=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];return p[2]+'/'+m[parseInt(p[1])-1];}
@@ -1523,7 +1517,7 @@ function _admMsg(elId,txt,ok){
   setTimeout(function(){el.style.display='none';},4000);
 }
 
-function _esc(s){return s?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'):'');}
+function _esc(s){return s?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'):'';}
 
 async function adminLoadUsers(){
   var cont=document.getElementById('adm-users-list');
