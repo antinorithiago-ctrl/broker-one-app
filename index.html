@@ -1523,8 +1523,8 @@ async function adminLoadUsers(){
 function admEdit(id){var u=(window._admUsers||[]).find(function(x){return x.id===id;});if(u)openEditUser(u);}
 
 async function adminCreateUser(){
-  var payload={full_name:document.getElementById('nu-fullname').value.trim(),username:document.getElementById('nu-username').value.trim(),email:document.getElementById('nu-email').value.trim()||null,nivel:parseInt(document.getElementById('nu-nivel').value),password:document.getElementById('nu-pass').value};
-  if(!payload.full_name||!payload.username||!payload.password){_admMsg('nu-msg','Preencha nome, usuário e senha.',false);return;}
+  var payload={name:document.getElementById('nu-fullname').value.trim(),username:document.getElementById('nu-username').value.trim(),email:document.getElementById('nu-email').value.trim()||null,nivel:parseInt(document.getElementById('nu-nivel').value),password:document.getElementById('nu-pass').value};
+  if(!payload.name||!payload.username||!payload.password){_admMsg('nu-msg','Preencha nome, usuário e senha.',false);return;}
   if(payload.password.length<6){_admMsg('nu-msg','Senha mínimo 6 caracteres.',false);return;}
   try{var res=await fetch(API_BASE+'/api/users/',{method:'POST',headers:apiHeaders(),body:JSON.stringify(payload)});var data=await res.json();if(!res.ok){_admMsg('nu-msg',data.detail||'Erro.',false);return;}
   _admMsg('nu-msg','Conta criada!',true);['nu-fullname','nu-username','nu-email','nu-pass'].forEach(function(id){document.getElementById(id).value='';});document.getElementById('nu-nivel').value='1';adminLoadUsers();}catch(e){_admMsg('nu-msg','Erro de conexão.',false);}
@@ -1543,7 +1543,7 @@ function openEditUser(u){
 
 async function adminSaveEdit(){
   var id=parseInt(document.getElementById('eu-id').value);
-  var payload={full_name:document.getElementById('eu-fullname').value.trim()||undefined,email:document.getElementById('eu-email').value.trim()||null,nivel:parseInt(document.getElementById('eu-nivel').value),ativo:document.getElementById('eu-ativo').checked};
+  var payload={name:document.getElementById('eu-fullname').value.trim()||undefined,email:document.getElementById('eu-email').value.trim()||null,nivel:parseInt(document.getElementById('eu-nivel').value),ativo:document.getElementById('eu-ativo').checked};
   var pw=document.getElementById('eu-pass').value;
   if(pw){if(pw.length<6){_admMsg('eu-msg','Senha mínimo 6 caracteres.',false);return;}payload.password=pw;}
   try{var res=await fetch(API_BASE+'/api/users/'+id,{method:'PATCH',headers:apiHeaders(),body:JSON.stringify(payload)});var data=await res.json();if(!res.ok){_admMsg('eu-msg',data.detail||'Erro.',false);return;}
