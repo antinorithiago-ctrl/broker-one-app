@@ -1512,7 +1512,7 @@ async function adminLoadUsers(){
         +'<td><span class="adm-badge '+(u.ativo?'n1':'off')+'">'+(u.ativo?'Ativo':'Inativo')+'</span></td>'
         +'<td><div style="display:flex;gap:8px;">'
           +'<button class="adm-btn-sm adm-btn-edit" onclick="admEdit('+u.id+')">Editar</button>'
-          +'<button class="adm-btn-sm adm-btn-del" onclick="adminDeleteUser('+u.id+',''+nome.replace(/'/g,"\'")+'')">Excluir</button>'
+          +'<button class="adm-btn-sm adm-btn-del" onclick="adminDeleteUser('+u.id+')">Excluir</button>'
         +'</div></td>'
       +'</tr>';
     });
@@ -1550,7 +1550,9 @@ async function adminSaveEdit(){
   _admMsg('eu-msg','Salvo!',true);setTimeout(function(){closeEditModal();adminLoadUsers();},1200);}catch(e){_admMsg('eu-msg','Erro de conexão.',false);}
 }
 
-async function adminDeleteUser(id,name){
+async function adminDeleteUser(id){
+  var u=(window._admUsers||[]).find(function(x){return x.id===id;});
+  var name=u?(u.full_name||u.name||u.username):'este usuário';
   if(!confirm('Excluir "'+name+'"? Não pode ser desfeito.'))return;
   try{var res=await fetch(API_BASE+'/api/users/'+id,{method:'DELETE',headers:apiHeaders()});
   if(res.status===204){adminLoadUsers();}else{var d=await res.json().catch(function(){return{};});alert(d.detail||'Erro.');}}catch(e){alert('Erro de conexão.');}
