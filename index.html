@@ -621,7 +621,7 @@ table.flow-table{width:100%;border-collapse:collapse;font-size:12px;}
         <p style="font-size:13px;color:rgba(255,255,255,0.45);line-height:1.75;max-width:260px;margin-bottom:44px;">Gestão operacional integrada para brokers e assessores de investimento.</p>
         <div style="display:flex;gap:36px;">
           <div><div style="font-size:24px;font-weight:700;color:#00BFA5;">5</div><div style="font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:.08em;margin-top:3px;">MÓDULOS</div></div>
-          <div><div style="font-size:24px;font-weight:700;color:#00BFA5;">∞</div><div style="font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:.08em;margin-top:3px;">BOLETAS</div></div>
+          <div><div style="font-size:24px;font-weight:700;color:#00BFA5;">&#8734;</div><div style="font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:.08em;margin-top:3px;">BOLETAS</div></div>
           <div><div style="font-size:24px;font-weight:700;color:#00BFA5;">IA</div><div style="font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:.08em;margin-top:3px;">INSIGHTS</div></div>
         </div>
       </div>
@@ -642,7 +642,7 @@ table.flow-table{width:100%;border-collapse:collapse;font-size:12px;}
             <label style="display:block;font-size:11px;font-weight:700;color:#4A5568;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;">Senha</label>
             <div style="position:relative;display:flex;align-items:center;">
               <svg style="position:absolute;left:14px;width:16px;height:16px;color:#8A9BB0;pointer-events:none;" viewBox="0 0 20 20" fill="none"><rect x="4" y="9" width="12" height="9" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M7 9V6a3 3 0 016 0v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-              <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password" class="lx-inp"/>
+              <input type="password" id="login-pass" placeholder="&#183;&#183;&#183;&#183;&#183;&#183;&#183;&#183;" autocomplete="current-password" class="lx-inp"/>
               <button type="button" onclick="toggleLxPass()" style="position:absolute;right:12px;background:none;border:none;cursor:pointer;color:#8A9BB0;display:flex;padding:4px;">
                 <svg id="lx-eye-open" width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M2 10s3-6 8-6 8 6 8 6-3 6-8 6-8-6-8-6z" stroke="currentColor" stroke-width="1.5"/><circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.5"/></svg>
                 <svg id="lx-eye-closed" width="18" height="18" viewBox="0 0 20 20" fill="none" style="display:none;"><path d="M3 3l14 14M8.46 8.53A2.5 2.5 0 0012.47 12.5M6.11 6.16C4.23 7.3 3 10 3 10s3 6 7 6c1.7 0 3.2-.7 4.36-1.77M10 4c4 0 7 6 7 6s-.56 1.12-1.5 2.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
@@ -675,9 +675,7 @@ table.flow-table{width:100%;border-collapse:collapse;font-size:12px;}
           <div class="adm-field"><label>Nome Completo</label><input type="text" id="nu-fullname" placeholder="Ex.: João Silva"/></div>
           <div class="adm-field"><label>Usuário (login)</label><input type="text" id="nu-username" placeholder="Ex.: joao.silva"/></div>
           <div class="adm-field"><label>E-mail</label><input type="email" id="nu-email" placeholder="joao@blue3.com.br"/></div>
-          <div class="adm-field"><label>Nível de Acesso</label>
-            <select id="nu-nivel"><option value="1">1 · Broker</option><option value="2">2 · Líder de Squad</option><option value="3">3 · Gerência Mesa RV</option><option value="4">4 · Head</option><option value="5">5 · Admin</option></select>
-          </div>
+          <div class="adm-field"><label>Nível de Acesso</label><select id="nu-nivel"><option value="1">1 · Broker</option><option value="2">2 · Líder de Squad</option><option value="3">3 · Gerência Mesa RV</option><option value="4">4 · Head</option><option value="5">5 · Admin</option></select></div>
           <div class="adm-field"><label>Senha Inicial</label><input type="password" id="nu-pass" placeholder="Mínimo 6 caracteres"/></div>
           <div class="adm-field" style="display:flex;align-items:flex-end;"><button class="adm-btn-create" onclick="adminCreateUser()"><svg width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Criar Conta</button></div>
         </div>
@@ -686,7 +684,7 @@ table.flow-table{width:100%;border-collapse:collapse;font-size:12px;}
       <div class="adm-sec">
         <div class="adm-sec-title" style="justify-content:space-between;">
           <span style="display:flex;align-items:center;gap:8px;"><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M2 6h16M2 10h16M2 14h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg> Contas</span>
-          <button onclick="adminLoadUsers()" style="background:none;border:none;color:#00BFA5;cursor:pointer;font-size:12px;font-family:inherit;">↻ Atualizar</button>
+          <button onclick="adminLoadUsers()" style="background:none;border:none;color:#00BFA5;cursor:pointer;font-size:12px;font-family:inherit;">&#8635; Atualizar</button>
         </div>
         <div id="adm-users-list"><div style="text-align:center;padding:32px;color:#687280;font-size:13px;">Carregando...</div></div>
       </div>
@@ -757,6 +755,7 @@ table.flow-table{width:100%;border-collapse:collapse;font-size:12px;}
 </style>
 
 <div class="toast" id="toast"></div>
+
 
 <script>
 // ═══════════════════════════════════════════
@@ -1434,18 +1433,12 @@ function fromSnake(r) {
   };
 }
 
-// ══ Login ══
-function toggleLxPass() {
-  var inp=document.getElementById('login-pass');
-  var open=document.getElementById('lx-eye-open');
-  var closed=document.getElementById('lx-eye-closed');
-  if(inp.type==='password'){inp.type='text';open.style.display='none';closed.style.display='';}
-  else{inp.type='password';open.style.display='';closed.style.display='none';}
-}
+// ── Login ──
+function toggleLxPass(){var i=document.getElementById('login-pass'),o=document.getElementById('lx-eye-open'),c=document.getElementById('lx-eye-closed');if(i.type==='password'){i.type='text';o.style.display='none';c.style.display='';}else{i.type='password';o.style.display='';c.style.display='none';}}
 document.getElementById('login-pass').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
 document.getElementById('login-user').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('login-pass').focus();});
 
-async function doLogin() {
+async function doLogin(){
   var user=document.getElementById('login-user').value.trim();
   var pass=document.getElementById('login-pass').value;
   var errEl=document.getElementById('login-error');
@@ -1455,16 +1448,12 @@ async function doLogin() {
   errEl.style.display='none';
   if(!user||!pass){errEl.textContent='Preencha usuário e senha.';errEl.style.display='block';return;}
   btn.disabled=true;btnTxt.style.display='none';spin.style.display='';
-  try {
+  try{
     var form=new URLSearchParams();
     form.append('username',user);
     form.append('password',pass);
     var res=await fetch(API_BASE+'/api/auth/login',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:form});
-    if(!res.ok){
-      var err=await res.json().catch(function(){return{};});
-      errEl.textContent=err.detail||'Usuário ou senha incorretos.';
-      errEl.style.display='block';return;
-    }
+    if(!res.ok){var err=await res.json().catch(function(){return{};});errEl.textContent=err.detail||'Usuário ou senha incorretos.';errEl.style.display='block';return;}
     var data=await res.json();
     authToken=data.access_token;
     currentUser=data.user||{};
@@ -1473,22 +1462,14 @@ async function doLogin() {
     document.getElementById('login-overlay').style.display='none';
     applySidebarUser(currentUser);
     initApp();
-  } catch(e){
-    errEl.textContent='Erro de conexão com o servidor.';errEl.style.display='block';
-  } finally{
-    btn.disabled=false;btnTxt.style.display='';spin.style.display='none';
-  }
+  }catch(e){errEl.textContent='Erro de conexão com o servidor.';errEl.style.display='block';}
+  finally{btn.disabled=false;btnTxt.style.display='';spin.style.display='none';}
 }
 
-function doLogout() {
-  if(!confirm('Deseja sair do Broker ONE?')) return;
-  sessionStorage.removeItem('bo_token');
-  sessionStorage.removeItem('bo_user');
-  location.reload();
-}
+function doLogout(){if(!confirm('Deseja sair do Broker ONE?'))return;sessionStorage.removeItem('bo_token');sessionStorage.removeItem('bo_user');location.reload();}
 
-function applySidebarUser(u) {
-  if(!u) return;
+function applySidebarUser(u){
+  if(!u)return;
   var nome=u.full_name||u.name||u.username||'Usuário';
   var initials=nome.split(' ').map(function(p){return p[0]||'';}).slice(0,2).join('').toUpperCase();
   var av=document.getElementById('sidebar-avatar');
@@ -1501,38 +1482,29 @@ function applySidebarUser(u) {
   if(ab)ab.style.display=(u.nivel>=5)?'flex':'none';
 }
 
-// ══ Painel Admin ══
+// ── Painel Admin ──
 var NIVEL_MAP={1:'Broker',2:'Líder de Squad',3:'Gerência Mesa RV',4:'Head',5:'Admin'};
-
 function openAdminPanel(){document.getElementById('adm-overlay').style.display='flex';adminLoadUsers();}
 function closeAdminPanel(){document.getElementById('adm-overlay').style.display='none';}
 function closeEditModal(){document.getElementById('adm-edit-overlay').style.display='none';}
 
-function _admMsg(elId,txt,ok){
-  var el=document.getElementById(elId);
-  el.textContent=txt;el.style.display='block';
-  el.style.background=ok?'#E0F5F2':'#FEF2F2';
-  el.style.color=ok?'#00695C':'#991B1B';
-  el.style.border=ok?'1px solid #B2E8E0':'1px solid #FECACA';
-  setTimeout(function(){el.style.display='none';},4000);
-}
-
+function _admMsg(id,txt,ok){var el=document.getElementById(id);el.textContent=txt;el.style.display='block';el.style.background=ok?'#E0F5F2':'#FEF2F2';el.style.color=ok?'#00695C':'#991B1B';el.style.border=ok?'1px solid #B2E8E0':'1px solid #FECACA';setTimeout(function(){el.style.display='none';},4000);}
 function _esc(s){return s?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'):'';}
 
 async function adminLoadUsers(){
   var cont=document.getElementById('adm-users-list');
-  cont.innerHTML='<div style="text-align:center;padding:32px;color:#687280;font-size:13px;">Carregando...</div>';
+  cont.innerHTML='<div style="text-align:center;padding:32px;color:#687280;">Carregando...</div>';
   try{
     var res=await fetch(API_BASE+'/api/users/',{headers:apiHeaders()});
     if(res.status===403){cont.innerHTML='<div style="text-align:center;padding:32px;color:#991B1B;">Sem permissão.</div>';return;}
     var users=await res.json();
     if(!users.length){cont.innerHTML='<div style="text-align:center;padding:32px;color:#687280;">Nenhum usuário cadastrado.</div>';return;}
     var rows='';
+    window._admUsers=users;
     users.forEach(function(u){
       var bCls=u.ativo?'n'+u.nivel:'off';
-      var bTxt=u.ativo?(NIVEL_MAP[u.nivel]||u.nivel_label||''):'Inativo';
+      var bTxt=u.ativo?(NIVEL_MAP[u.nivel]||''):'Inativo';
       var nome=_esc(u.full_name||u.name||'');
-      var uData=JSON.stringify(u).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
       rows+='<tr>'
         +'<td><strong>'+nome+'</strong></td>'
         +'<td style="color:#687280;">'+_esc(u.username)+'</td>'
@@ -1540,40 +1512,22 @@ async function adminLoadUsers(){
         +'<td><span class="adm-badge '+(u.ativo?'n1':'off')+'">'+(u.ativo?'Ativo':'Inativo')+'</span></td>'
         +'<td><div style="display:flex;gap:8px;">'
           +'<button class="adm-btn-sm adm-btn-edit" onclick="admEdit('+u.id+')">Editar</button>'
-          +'<button class="adm-btn-sm adm-btn-del" onclick="adminDeleteUser('+u.id+',\''+nome+'\')">Excluir</button>'
+          +'<button class="adm-btn-sm adm-btn-del" onclick="adminDeleteUser('+u.id+',''+nome.replace(/'/g,"\'")+'')">Excluir</button>'
         +'</div></td>'
       +'</tr>';
     });
     cont.innerHTML='<table class="adm-tbl"><thead><tr><th>Nome</th><th>Usuário</th><th>Nível</th><th>Status</th><th>Ações</th></tr></thead><tbody>'+rows+'</tbody></table>';
-    // Guardar usuários para o modal de edição
-    window._admUsers=users;
   }catch(e){cont.innerHTML='<div style="text-align:center;padding:32px;color:#991B1B;">Erro de conexão.</div>';}
 }
 
-function admEdit(id){
-  var u=(window._admUsers||[]).find(function(x){return x.id===id;});
-  if(u)openEditUser(u);
-}
+function admEdit(id){var u=(window._admUsers||[]).find(function(x){return x.id===id;});if(u)openEditUser(u);}
 
 async function adminCreateUser(){
-  var payload={
-    full_name:document.getElementById('nu-fullname').value.trim(),
-    username:document.getElementById('nu-username').value.trim(),
-    email:document.getElementById('nu-email').value.trim()||null,
-    nivel:parseInt(document.getElementById('nu-nivel').value),
-    password:document.getElementById('nu-pass').value,
-  };
+  var payload={full_name:document.getElementById('nu-fullname').value.trim(),username:document.getElementById('nu-username').value.trim(),email:document.getElementById('nu-email').value.trim()||null,nivel:parseInt(document.getElementById('nu-nivel').value),password:document.getElementById('nu-pass').value};
   if(!payload.full_name||!payload.username||!payload.password){_admMsg('nu-msg','Preencha nome, usuário e senha.',false);return;}
   if(payload.password.length<6){_admMsg('nu-msg','Senha mínimo 6 caracteres.',false);return;}
-  try{
-    var res=await fetch(API_BASE+'/api/users/',{method:'POST',headers:apiHeaders(),body:JSON.stringify(payload)});
-    var data=await res.json();
-    if(!res.ok){_admMsg('nu-msg',data.detail||'Erro ao criar conta.',false);return;}
-    _admMsg('nu-msg','Conta criada para '+(data.full_name||data.name)+'!',true);
-    ['nu-fullname','nu-username','nu-email','nu-pass'].forEach(function(id){document.getElementById(id).value='';});
-    document.getElementById('nu-nivel').value='1';
-    adminLoadUsers();
-  }catch(e){_admMsg('nu-msg','Erro de conexão.',false);}
+  try{var res=await fetch(API_BASE+'/api/users/',{method:'POST',headers:apiHeaders(),body:JSON.stringify(payload)});var data=await res.json();if(!res.ok){_admMsg('nu-msg',data.detail||'Erro.',false);return;}
+  _admMsg('nu-msg','Conta criada!',true);['nu-fullname','nu-username','nu-email','nu-pass'].forEach(function(id){document.getElementById(id).value='';});document.getElementById('nu-nivel').value='1';adminLoadUsers();}catch(e){_admMsg('nu-msg','Erro de conexão.',false);}
 }
 
 function openEditUser(u){
@@ -1589,59 +1543,51 @@ function openEditUser(u){
 
 async function adminSaveEdit(){
   var id=parseInt(document.getElementById('eu-id').value);
-  var payload={
-    full_name:document.getElementById('eu-fullname').value.trim()||undefined,
-    email:document.getElementById('eu-email').value.trim()||null,
-    nivel:parseInt(document.getElementById('eu-nivel').value),
-    ativo:document.getElementById('eu-ativo').checked,
-  };
+  var payload={full_name:document.getElementById('eu-fullname').value.trim()||undefined,email:document.getElementById('eu-email').value.trim()||null,nivel:parseInt(document.getElementById('eu-nivel').value),ativo:document.getElementById('eu-ativo').checked};
   var pw=document.getElementById('eu-pass').value;
   if(pw){if(pw.length<6){_admMsg('eu-msg','Senha mínimo 6 caracteres.',false);return;}payload.password=pw;}
-  try{
-    var res=await fetch(API_BASE+'/api/users/'+id,{method:'PATCH',headers:apiHeaders(),body:JSON.stringify(payload)});
-    var data=await res.json();
-    if(!res.ok){_admMsg('eu-msg',data.detail||'Erro.',false);return;}
-    _admMsg('eu-msg','Alterações salvas!',true);
-    setTimeout(function(){closeEditModal();adminLoadUsers();},1200);
-  }catch(e){_admMsg('eu-msg','Erro de conexão.',false);}
+  try{var res=await fetch(API_BASE+'/api/users/'+id,{method:'PATCH',headers:apiHeaders(),body:JSON.stringify(payload)});var data=await res.json();if(!res.ok){_admMsg('eu-msg',data.detail||'Erro.',false);return;}
+  _admMsg('eu-msg','Salvo!',true);setTimeout(function(){closeEditModal();adminLoadUsers();},1200);}catch(e){_admMsg('eu-msg','Erro de conexão.',false);}
 }
 
 async function adminDeleteUser(id,name){
-  if(!confirm('Excluir a conta de "'+name+'"? Esta ação não pode ser desfeita.')) return;
-  try{
-    var res=await fetch(API_BASE+'/api/users/'+id,{method:'DELETE',headers:apiHeaders()});
-    if(res.status===204){adminLoadUsers();}
-    else{var d=await res.json().catch(function(){return{};});alert(d.detail||'Erro ao excluir.');}
-  }catch(e){alert('Erro de conexão.');}
+  if(!confirm('Excluir "'+name+'"? Não pode ser desfeito.'))return;
+  try{var res=await fetch(API_BASE+'/api/users/'+id,{method:'DELETE',headers:apiHeaders()});
+  if(res.status===204){adminLoadUsers();}else{var d=await res.json().catch(function(){return{};});alert(d.detail||'Erro.');}}catch(e){alert('Erro de conexão.');}
 }
 
-// ══ Sync APIs ══
-async function syncFlowToAPI(){
-  if(!authToken)return;
-  try{await fetch(API_BASE+'/api/boletas/sync',{method:'POST',headers:apiHeaders(),body:JSON.stringify(flowItems.map(toSnake))});}
-  catch(e){console.warn('Sync boletas failed',e);}
-}
-async function syncTasksToAPI(tasks){
-  if(!authToken)return;
-  try{await fetch(API_BASE+'/api/tasks/sync',{method:'POST',headers:apiHeaders(),body:JSON.stringify(tasks)});}
-  catch(e){console.warn('Sync tasks failed',e);}
+async function syncFlowToAPI() {
+  if(!authToken) return;
+  try {
+    await fetch(API_BASE+'/api/boletas/sync', {method:'POST',headers:apiHeaders(),body:JSON.stringify(flowItems.map(toSnake))});
+  } catch(e) { console.warn('Sync boletas failed',e); }
 }
 
-async function initApp(){
+async function syncTasksToAPI(tasks) {
+  if(!authToken) return;
+  try {
+    await fetch(API_BASE+'/api/tasks/sync', {method:'POST',headers:apiHeaders(),body:JSON.stringify(tasks)});
+  } catch(e) { console.warn('Sync tasks failed',e); }
+}
+
+async function initApp() {
   setDates();
-  try{
-    var res=await fetch(API_BASE+'/api/boletas/',{headers:apiHeaders()});
-    if(res.ok){var data=await res.json();flowItems=data.map(fromSnake);localStorage.setItem('brokerone_flow',JSON.stringify(flowItems));}
-  }catch(e){loadFlow();}
-  try{
-    var res2=await fetch(API_BASE+'/api/tasks/',{headers:apiHeaders()});
-    if(res2.ok){var td=await res2.json();var s=JSON.parse(localStorage.getItem('brokerone_pilott')||'{"tasks":[]}');s.tasks=td;localStorage.setItem('brokerone_pilott',JSON.stringify(s));}
-  }catch(e){}
-  renderFlow();updateFlowBadge();pilottRender();
+  // Load boletas from API
+  try {
+    var res = await fetch(API_BASE+'/api/boletas/', {headers:apiHeaders()});
+    if(res.ok){ var data=await res.json(); flowItems=data.map(fromSnake); localStorage.setItem('brokerone_flow',JSON.stringify(flowItems)); }
+  } catch(e) { loadFlow(); }
+  // Load tasks from API
+  try {
+    var res2 = await fetch(API_BASE+'/api/tasks/', {headers:apiHeaders()});
+    if(res2.ok){ var td=await res2.json(); var s=JSON.parse(localStorage.getItem('brokerone_pilott')||'{"tasks":[]}'); s.tasks=td; localStorage.setItem('brokerone_pilott',JSON.stringify(s)); }
+  } catch(e) { /* use localStorage */ }
+  renderFlow(); updateFlowBadge(); pilottRender();
 }
 
-var _origSaveFlow=saveFlow;
-saveFlow=function(){_origSaveFlow();syncFlowToAPI();};
+// Patch saveFlow to also sync
+var _origSaveFlow = saveFlow;
+saveFlow = function() { _origSaveFlow(); syncFlowToAPI(); };
 
 // ═══════════════════════════════════════════
 //  INIT
