@@ -467,7 +467,7 @@ table.flow-table{width:100%;border-collapse:collapse;font-size:12px;}
 </div>
 
 <!-- Modal de lançamento de linha do Pipe -->
-<div class="modal-overlay" id="modal-pipe-linha" onclick="if(event.target===this)closePipeModal()">
+<div class="overlay" id="modal-pipe-linha" onclick="if(event.target===this)closePipeModal()">
   <div class="modal" style="max-width:440px;">
     <div class="modal-header">
       <div class="modal-title">Pipe · <span id="pipe-modal-assessor" style="color:var(--teal-dark);"></span></div>
@@ -2002,11 +2002,11 @@ function openPipeModal(linhaId){
   document.getElementById('pipe-f-coe').value=l.coe||'';
   document.getElementById('pipe-f-estr').value=l.estruturados||'';
   pipeSomaModal();
-  document.getElementById('modal-pipe-linha').style.display='flex';
+  document.getElementById('modal-pipe-linha').classList.add('open');
 }
 
 function closePipeModal(){
-  document.getElementById('modal-pipe-linha').style.display='none';
+  document.getElementById('modal-pipe-linha').classList.remove('open');
   _pipeLinhaId=null;
 }
 
