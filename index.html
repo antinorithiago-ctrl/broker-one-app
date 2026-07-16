@@ -462,7 +462,7 @@ table.flow-table{width:100%;border-collapse:collapse;font-size:12px;}
         </div>
         <div class="form-group full"><label class="form-label">Detalhes</label><textarea id="f-detalhes" placeholder="Descreva a operação, ativo, estratégia..." style="min-height:56px;"></textarea></div>
         <div id="f-papel-wrap" class="form-group" style="display:none;"><label class="form-label">Papel (Ticker)</label><input type="text" id="f-papel" placeholder="Ex: PETR4, VALE3..." style="text-transform:uppercase;"/></div>
-        <div class="form-group"><label class="form-label">Volume Financeiro (R$)</label><input type="number" id="f-vol-fin" placeholder="0,00" step="0.01" oninput="calcComissao()"/></div>
+        <div class="form-group"><label class="form-label">Volume Financeiro (R$)</label><input type="number" id="f-vol-fin" placeholder="0,00" step="0.01" oninput="calcComissao();calcCorretagem();"/></div>
         <hr class="form-divider"/><div class="form-section-label">Comissão / ROA</div>
         <div class="form-group"><label class="form-label">ROA %</label><input type="number" id="f-roa" placeholder="0,0000" step="0.0001" oninput="calcComissao()"/></div>
         <div class="form-group"><label class="form-label">Comissão Estimada (R$)</label><input type="number" id="f-comissao" placeholder="Calculado automaticamente" readonly style="background:var(--bg);color:var(--teal-dark);font-weight:600;"/></div>
@@ -472,9 +472,7 @@ table.flow-table{width:100%;border-collapse:collapse;font-size:12px;}
             <input type="checkbox" id="f-add-corretagem" onchange="toggleCorretagemFields()"/> + Corretagem (receita de corretagem gerada nesta operação)
           </label>
           <div id="f-corretagem-fields" style="display:none;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px;">
-            <div class="form-group"><label class="form-label">Volume Financeiro Corretagem (R$)</label><input type="number" id="f-corr-vol" placeholder="0,00" step="0.01" oninput="calcCorretagem()"/></div>
-            <div class="form-group"><label class="form-label">ROA % Corretagem</label><input type="number" id="f-corr-roa" placeholder="0,0000" step="0.0001" oninput="calcCorretagem()"/></div>
-            <div class="form-group full"><label class="form-label">Comissão de Corretagem Estimada (R$)</label><input type="number" id="f-corr-comissao" placeholder="Calculado automaticamente" readonly style="background:#fff;color:var(--teal-dark);font-weight:600;"/></div>
+            <div class="form-group full"><label class="form-label">Comissão de Corretagem Estimada (R$) <span style="font-weight:400;color:var(--text-muted);font-size:11px;">— ROA 0,3750% sobre o volume do lançamento</span></label><input type="number" id="f-corr-comissao" placeholder="Calculado automaticamente" readonly style="background:#f8f9fc;color:var(--teal-dark);font-weight:600;cursor:default;"/></div>
             <div class="form-group full" style="font-size:10px;color:var(--text-muted);">Esta receita será contabilizada separadamente como <strong>Corretagem</strong>, enquanto o restante permanece lançado em <strong>Estruturados</strong>.</div>
           </div>
         </div>
@@ -983,19 +981,20 @@ function onTipoChange(preserveValues){
 function calcComissao(){var vol=parseFloat(document.getElementById('f-vol-fin').value)||0;var roa=parseFloat(document.getElementById('f-roa').value)||0;var comm=vol*roa/100;document.getElementById('f-comissao').value=comm>0?comm.toFixed(2):'';}
 function toggleCorretagemFields(){
   var chk=document.getElementById('f-add-corretagem');
-  var fields=document.getElementById('f-corretagem-fields');
-  if(!chk||!fields)return;
-  fields.style.display=chk.checked?'grid':'none';
+  if(!chk)return;
   if(!chk.checked){
-    document.getElementById('f-corr-vol').value='';
-    document.getElementById('f-corr-roa').value='';
     document.getElementById('f-corr-comissao').value='';
+  } else {
+    calcCorretagem();
   }
 }
 function calcCorretagem(){
-  var vol=parseFloat(document.getElementById('f-corr-vol').value)||0;
-  var roa=parseFloat(document.getElementById('f-corr-roa').value)||0;
-  var comm=vol*roa/100;
+  var chk=document.getElementById('f-add-corretagem');
+  if(!chk||!chk.checked)return;
+  var ROA_CORR=0.3750;
+  var volEl=document.getElementById('f-vol-fin');
+  var vol=volEl?parseFloat(volEl.value)||0:0;
+  var comm=vol*ROA_CORR/100;
   document.getElementById('f-corr-comissao').value=comm>0?comm.toFixed(2):'';
 }
 function calcConf(){
@@ -1029,8 +1028,7 @@ function openFlowModal(id){
   var addCorrChk=document.getElementById('f-add-corretagem');
   if(addCorrChk){
     addCorrChk.checked=!!(item&&item.corretagemAdicional);
-    document.getElementById('f-corr-vol').value=item&&item.corretagemVolFin?item.corretagemVolFin:'';
-    document.getElementById('f-corr-roa').value=item&&item.corretagemRoa?item.corretagemRoa:'';
+    /* f-corr-vol e f-corr-roa removidos — calculado automaticamente pelo f-vol e ROA fixo */
     document.getElementById('f-corr-comissao').value=item&&item.corretagemComissao?item.corretagemComissao:'';
   }
   if(item&&item.tipo) onTipoChange(true);
@@ -1054,8 +1052,8 @@ function saveFlowItem(){
   var isCorretagemAdicional=!!(tipo==='Estruturados'&&addCorrChk&&addCorrChk.checked);
   var data={clienteCod:cod,assessor:ass,data:document.getElementById('f-data').value,tipo:tipo,detalhes:document.getElementById('f-detalhes').value.trim(),papel:document.getElementById('f-papel').value.toUpperCase().trim(),volFin:parseFloat(document.getElementById('f-vol-fin').value)||0,roa:parseFloat(document.getElementById('f-roa').value)||0,comissao:parseFloat(document.getElementById('f-comissao').value)||0,status:document.getElementById('f-status').value,saldo:saldo||null,qtd:qtd||null,preco:preco||null,debito:debito||null,confStatus:debito>0&&saldo>0?(saldo>=debito?'ok':'cancelar'):null,
     corretagemAdicional:isCorretagemAdicional,
-    corretagemVolFin:isCorretagemAdicional?(parseFloat(document.getElementById('f-corr-vol').value)||0):null,
-    corretagemRoa:isCorretagemAdicional?(parseFloat(document.getElementById('f-corr-roa').value)||0):null,
+    corretagemVolFin:isCorretagemAdicional?(parseFloat(document.getElementById('f-vol-fin').value)||0):null,
+    corretagemRoa:isCorretagemAdicional?0.3750:null,
     corretagemComissao:isCorretagemAdicional?(parseFloat(document.getElementById('f-corr-comissao').value)||0):null
   };
   if(editingFlowId){var item=flowItems.find(function(i){return i.id===editingFlowId;});if(item)Object.assign(item,data,{updatedAt:now});toast('Boleta atualizada');}
