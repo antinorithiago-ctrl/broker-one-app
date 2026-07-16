@@ -733,6 +733,9 @@ textarea { resize: vertical; min-height: 72px; }
         <div class="sidebar-user-name" id="sidebar-user-name">Usuário</div>
         <div class="sidebar-user-role" id="sidebar-user-role">Broker</div>
       </div>
+      <button class="sidebar-icon-btn" id="sidebar-admin-btn" onclick="openAdminPanel()" title="Gerenciar usuários" style="display:none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+      </button>
       <button class="sidebar-icon-btn" onclick="openPasswordModal()" title="Trocar senha">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
       </button>
@@ -1145,6 +1148,106 @@ textarea { resize: vertical; min-height: 72px; }
     </div>
   </div>
 </div>
+
+<!-- ══ MODAL METAS ══ -->
+<div class="overlay" id="meta-overlay">
+  <div class="modal" style="max-width:480px;" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title" id="meta-modal-title">Nova Meta</div>
+      <button class="modal-close" onclick="closeMetaModal()">×</button>
+    </div>
+    <div class="modal-body" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+      <div class="form-group full-w">
+        <label class="form-label">Assessor</label>
+        <input type="text" id="m-assessor" placeholder="Nome do assessor"/>
+        <div id="m-assessor-hint" style="font-size:11px;color:var(--text-3);margin-top:3px;"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Semestre</label>
+        <select id="m-semestre"><option value="1">1º Semestre</option><option value="2">2º Semestre</option></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Mês</label>
+        <select id="m-mes">
+          <option value="1">Janeiro</option><option value="2">Fevereiro</option><option value="3">Março</option>
+          <option value="4">Abril</option><option value="5">Maio</option><option value="6">Junho</option>
+          <option value="7">Julho</option><option value="8">Agosto</option><option value="9">Setembro</option>
+          <option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
+        </select>
+      </div>
+      <div class="form-group full-w">
+        <label class="form-label">Valor da Meta (R$)</label>
+        <input type="number" id="m-valor" placeholder="0,00" step="0.01" min="0"/>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger" id="meta-delete-btn" onclick="deleteMeta()" style="display:none;margin-right:auto;">Excluir</button>
+      <button class="btn btn-secondary" onclick="closeMetaModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveMeta()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL PARAMETRIZAÇÃO ══ -->
+<div class="overlay" id="param-overlay">
+  <div class="modal" style="max-width:640px;" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title" id="param-modal-title">Novo Registro</div>
+      <button class="modal-close" onclick="closeParamModal()">×</button>
+    </div>
+    <div class="modal-body" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+      <div class="form-group"><label class="form-label">Praça</label><input type="text" id="p-praca"/></div>
+      <div class="form-group"><label class="form-label">Líder</label><input type="text" id="p-lider"/></div>
+      <div class="form-group"><label class="form-label">Cód. AAI</label><input type="text" id="p-cod-aai"/></div>
+      <div class="form-group"><label class="form-label">Assessor</label><input type="text" id="p-assessor"/></div>
+      <div class="form-group"><label class="form-label">Cód. Advisor</label><input type="text" id="p-cod-advisor"/></div>
+      <div class="form-group"><label class="form-label">Advisor</label><input type="text" id="p-advisor"/></div>
+      <div class="form-group"><label class="form-label">Cód. Broker</label><input type="text" id="p-cod-broker"/></div>
+      <div class="form-group"><label class="form-label">Broker</label><input type="text" id="p-broker"/></div>
+      <div class="form-group full-w"><label class="form-label">Observações</label><textarea id="p-obs" rows="2"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger" id="param-delete-btn" onclick="deleteParam()" style="display:none;margin-right:auto;">Excluir</button>
+      <button class="btn btn-secondary" onclick="closeParamModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveParam()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL PIPE LINHA ══ -->
+<div class="overlay" id="modal-pipe-linha" onclick="if(event.target===this)closePipeModal()">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-header">
+      <div class="modal-title">Pipe · <span id="pipe-modal-assessor" style="color:var(--coral);"></span></div>
+      <button class="modal-close" onclick="closePipeModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:grid;gap:14px;">
+        <div class="form-group">
+          <label class="form-label">Corretagem (R$)</label>
+          <input type="number" id="pipe-f-corr" placeholder="0,00" step="0.01" min="0" oninput="pipeSomaModal()"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">COE (R$)</label>
+          <input type="number" id="pipe-f-coe" placeholder="0,00" step="0.01" min="0" oninput="pipeSomaModal()"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Estruturados (R$)</label>
+          <input type="number" id="pipe-f-estr" placeholder="0,00" step="0.01" min="0" oninput="pipeSomaModal()"/>
+        </div>
+        <div style="background:var(--bg);border-radius:var(--radius);padding:12px 14px;display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:13px;color:var(--text-2);font-weight:600;">Total do assessor</span>
+          <span style="font-size:18px;font-weight:800;color:var(--coral);" id="pipe-modal-total">R$ 0,00</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closePipeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="savePipeLinha()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <!-- Modal Trocar Senha -->
@@ -1257,6 +1360,106 @@ textarea { resize: vertical; min-height: 72px; }
     </div>
   </div>
 </div>
+
+<!-- ══ MODAL METAS ══ -->
+<div class="overlay" id="meta-overlay">
+  <div class="modal" style="max-width:480px;" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title" id="meta-modal-title">Nova Meta</div>
+      <button class="modal-close" onclick="closeMetaModal()">×</button>
+    </div>
+    <div class="modal-body" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+      <div class="form-group full-w">
+        <label class="form-label">Assessor</label>
+        <input type="text" id="m-assessor" placeholder="Nome do assessor"/>
+        <div id="m-assessor-hint" style="font-size:11px;color:var(--text-3);margin-top:3px;"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Semestre</label>
+        <select id="m-semestre"><option value="1">1º Semestre</option><option value="2">2º Semestre</option></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Mês</label>
+        <select id="m-mes">
+          <option value="1">Janeiro</option><option value="2">Fevereiro</option><option value="3">Março</option>
+          <option value="4">Abril</option><option value="5">Maio</option><option value="6">Junho</option>
+          <option value="7">Julho</option><option value="8">Agosto</option><option value="9">Setembro</option>
+          <option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
+        </select>
+      </div>
+      <div class="form-group full-w">
+        <label class="form-label">Valor da Meta (R$)</label>
+        <input type="number" id="m-valor" placeholder="0,00" step="0.01" min="0"/>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger" id="meta-delete-btn" onclick="deleteMeta()" style="display:none;margin-right:auto;">Excluir</button>
+      <button class="btn btn-secondary" onclick="closeMetaModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveMeta()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL PARAMETRIZAÇÃO ══ -->
+<div class="overlay" id="param-overlay">
+  <div class="modal" style="max-width:640px;" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title" id="param-modal-title">Novo Registro</div>
+      <button class="modal-close" onclick="closeParamModal()">×</button>
+    </div>
+    <div class="modal-body" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+      <div class="form-group"><label class="form-label">Praça</label><input type="text" id="p-praca"/></div>
+      <div class="form-group"><label class="form-label">Líder</label><input type="text" id="p-lider"/></div>
+      <div class="form-group"><label class="form-label">Cód. AAI</label><input type="text" id="p-cod-aai"/></div>
+      <div class="form-group"><label class="form-label">Assessor</label><input type="text" id="p-assessor"/></div>
+      <div class="form-group"><label class="form-label">Cód. Advisor</label><input type="text" id="p-cod-advisor"/></div>
+      <div class="form-group"><label class="form-label">Advisor</label><input type="text" id="p-advisor"/></div>
+      <div class="form-group"><label class="form-label">Cód. Broker</label><input type="text" id="p-cod-broker"/></div>
+      <div class="form-group"><label class="form-label">Broker</label><input type="text" id="p-broker"/></div>
+      <div class="form-group full-w"><label class="form-label">Observações</label><textarea id="p-obs" rows="2"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger" id="param-delete-btn" onclick="deleteParam()" style="display:none;margin-right:auto;">Excluir</button>
+      <button class="btn btn-secondary" onclick="closeParamModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveParam()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL PIPE LINHA ══ -->
+<div class="overlay" id="modal-pipe-linha" onclick="if(event.target===this)closePipeModal()">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-header">
+      <div class="modal-title">Pipe · <span id="pipe-modal-assessor" style="color:var(--coral);"></span></div>
+      <button class="modal-close" onclick="closePipeModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:grid;gap:14px;">
+        <div class="form-group">
+          <label class="form-label">Corretagem (R$)</label>
+          <input type="number" id="pipe-f-corr" placeholder="0,00" step="0.01" min="0" oninput="pipeSomaModal()"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">COE (R$)</label>
+          <input type="number" id="pipe-f-coe" placeholder="0,00" step="0.01" min="0" oninput="pipeSomaModal()"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Estruturados (R$)</label>
+          <input type="number" id="pipe-f-estr" placeholder="0,00" step="0.01" min="0" oninput="pipeSomaModal()"/>
+        </div>
+        <div style="background:var(--bg);border-radius:var(--radius);padding:12px 14px;display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:13px;color:var(--text-2);font-weight:600;">Total do assessor</span>
+          <span style="font-size:18px;font-weight:800;color:var(--coral);" id="pipe-modal-total">R$ 0,00</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closePipeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="savePipeLinha()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -2092,9 +2295,9 @@ function applySidebarUser(u){
 function openChangePwd(){
   ['pwd-atual','pwd-nova','pwd-confirm'].forEach(function(id){document.getElementById(id).value='';});
   document.getElementById('pwd-msg').style.display='none';
-  document.getElementById('pwd-overlay').style.display='flex';
+  document.getElementById('modal-senha').style.display='flex';
 }
-function closePwdModal(){document.getElementById('pwd-overlay').style.display='none';}
+function closePwdModal(){document.getElementById('modal-senha').style.display='none';}
 function _pwdMsg(txt,ok){var el=document.getElementById('pwd-msg');el.textContent=txt;el.style.display='block';el.style.background=ok?'#FDEEE9':'#FEF2F2';el.style.color=ok?'#00695C':'#991B1B';el.style.border=ok?'1px solid #F5C4B5':'1px solid #FECACA';if(ok)setTimeout(function(){closePwdModal();},1800);}
 async function doChangePwd(){
   var atual=document.getElementById('pwd-atual').value;
@@ -2121,7 +2324,7 @@ function _admMsg(id,txt,ok){var el=document.getElementById(id);el.textContent=tx
 function _esc(s){return s?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'):'';}
 
 async function adminLoadUsers(){
-  var cont=document.getElementById('adm-users-list');
+  var cont=document.getElementById('adm-user-list');
   cont.innerHTML='<div style="text-align:center;padding:32px;color:#687280;">Carregando...</div>';
   try{
     var res=await fetch(API_BASE+'/api/users/',{headers:apiHeaders()});
@@ -2226,11 +2429,12 @@ saveFlow = function() { _origSaveFlow(); syncFlowToAPI(); };
 setDates();
 try{currentUser=JSON.parse(sessionStorage.getItem('bo_user')||'null');}catch(e){}
 if(authToken){
-  document.getElementById('login-overlay').style.display='none';
+  var _ls=document.getElementById('login-screen');
+  var _app=document.getElementById('app');
+  if(_ls) _ls.style.display='none';
+  if(_app) _app.style.display='flex';
   applySidebarUser(currentUser);
   initApp();
-}else{
-  loadFlow();renderFlow();updateFlowBadge();
 }
 
 // ════════════════════════════════════════════
