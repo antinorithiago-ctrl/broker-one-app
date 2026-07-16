@@ -1260,6 +1260,11 @@ textarea { resize: vertical; min-height: 72px; }
 <div class="toast" id="toast"></div>
 
 <script>
+// ── Config global — deve vir primeiro ──
+var API_BASE = "https://broker-one-backend-production-90c9.up.railway.app";
+var authToken = sessionStorage.getItem('bo_token') || '';
+var currentUser = null;
+function apiHeaders(){return{'Content-Type':'application/json','Authorization':'Bearer '+authToken};}
 
 // ═══════════════════════════════════════════
 //  SHARED UTILITIES
@@ -1951,13 +1956,7 @@ document.getElementById('flow-overlay').addEventListener('click',function(e){if(
 // ═══════════════════════════════════════════
 //  API + AUTH
 // ═══════════════════════════════════════════
-var API_BASE = "https://broker-one-backend-production-90c9.up.railway.app";
-var authToken = sessionStorage.getItem('bo_token') || '';
-var currentUser = null;
-
-function apiHeaders() {
-  return {'Content-Type':'application/json','Authorization':'Bearer '+authToken};
-}
+// (API_BASE, authToken, currentUser, apiHeaders declarados no topo)
 
 function toSnake(item) {
   return {
@@ -2007,8 +2006,12 @@ function fromSnake(r) {
 
 // ── Login ──
 function toggleLxPass(){var i=document.getElementById('login-pass'),o=document.getElementById('lx-eye-open'),c=document.getElementById('lx-eye-closed');if(i.type==='password'){i.type='text';o.style.display='none';c.style.display='';}else{i.type='password';o.style.display='';c.style.display='none';}}
-document.getElementById('login-pass').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
-document.getElementById('login-user').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('login-pass').focus();});
+document.addEventListener('DOMContentLoaded',function(){
+  var lp=document.getElementById('login-pass');
+  var lu=document.getElementById('login-user');
+  if(lp) lp.addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
+  if(lu) lu.addEventListener('keydown',function(e){if(e.key==='Enter')lp&&lp.focus();});
+});
 
 async function doLogin(){
   var user=document.getElementById('login-user').value.trim();
