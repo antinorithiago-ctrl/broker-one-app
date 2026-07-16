@@ -1550,7 +1550,7 @@ function importFlowData(){
   input.onchange=function(e){var file=e.target.files[0];if(!file)return;var reader=new FileReader();reader.onload=function(ev){try{var backup=JSON.parse(ev.target.result);if(backup.flow){flowItems=backup.flow;localStorage.setItem('brokerone_flow',JSON.stringify(flowItems));}if(backup.pilott)localStorage.setItem('brokerone_pilott',backup.pilott);if(backup.param)localStorage.setItem('brokerone_param',backup.param);updateFlowBadge();renderFlow();toast('Dados restaurados');} catch(err){toast('Erro ao importar','error');}};reader.readAsText(file);};
   input.click();
 }
-document.getElementById('flow-overlay').addEventListener('click',function(e){if(e.target===this)closeFlowModal();});
+var __flow_overlay=document.getElementById('flow-overlay');if(__flow_overlay)document.getElementById('flow-overlay').addEventListener('click',function(e){if(e.target===this)closeFlowModal();});
 
 // ═══════════════════════════════════════════
 //  PILOTT MODULE
@@ -1866,7 +1866,7 @@ document.getElementById('flow-overlay').addEventListener('click',function(e){if(
     };
     input.click();
   };
-  document.getElementById('param-overlay').addEventListener('click',function(e){if(e.target===this)closeParamModal();});
+  var __param_overlay=document.getElementById('param-overlay');if(__param_overlay)document.getElementById('param-overlay').addEventListener('click',function(e){if(e.target===this)closeParamModal();});
   loadParam();
 })();
 
@@ -1949,7 +1949,7 @@ document.getElementById('flow-overlay').addEventListener('click',function(e){if(
   };
   window.deleteMeta=function(){if(!editingMetaId)return;if(!confirm('Excluir esta meta?'))return;metasData=metasData.filter(function(x){return x.id!==editingMetaId;});save();closeMetaModal();renderMetas();toast('Meta excluída');};
 
-  document.getElementById('meta-overlay').addEventListener('click',function(e){if(e.target===this)closeMetaModal();});
+  var __meta_overlay=document.getElementById('meta-overlay');if(__meta_overlay)document.getElementById('meta-overlay').addEventListener('click',function(e){if(e.target===this)closeMetaModal();});
   load();
 })();
 
