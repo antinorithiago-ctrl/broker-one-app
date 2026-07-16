@@ -223,7 +223,7 @@ table.flow-table{width:100%;border-collapse:collapse;font-size:12px;}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2v-4M9 21H5a2 2 0 01-2-2v-4m0 0h18"/></svg>
       COE + Crédito
     </div>
-    <div class="nav-section">Cadastros</div>
+    <div class="nav-section" id="nav-section-cadastros">Cadastros</div>
     <div class="nav-item" onclick="goTo('clientes')" id="nav-clientes">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
       Clientes
@@ -252,6 +252,9 @@ table.flow-table{width:100%;border-collapse:collapse;font-size:12px;}
       </div>
       <button onclick="doLogout()" title="Sair" style="background:none;border:none;cursor:pointer;color:rgba(255,255,255,0.3);padding:4px;border-radius:6px;display:flex;flex-shrink:0;" onmouseover="this.style.color='#e06060'" onmouseout="this.style.color='rgba(255,255,255,0.3)'">
         <svg width="17" height="17" viewBox="0 0 20 20" fill="none"><path d="M7 3H4a1 1 0 00-1 1v12a1 1 0 001 1h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M13 14l3-4-3-4M16 10H8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button onclick="openChangePwd()" title="Alterar senha" style="background:none;border:none;cursor:pointer;color:rgba(255,255,255,0.3);padding:4px;border-radius:6px;display:flex;flex-shrink:0;" onmouseover="this.style.color='#00BFA5'" onmouseout="this.style.color='rgba(255,255,255,0.3)'">
+        <svg width="17" height="17" viewBox="0 0 20 20" fill="none"><rect x="3" y="9" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M7 9V6a3 3 0 016 0v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="10" cy="14" r="1.2" fill="currentColor"/></svg>
       </button>
     </div>
   </div>
@@ -662,7 +665,33 @@ table.flow-table{width:100%;border-collapse:collapse;font-size:12px;}
 </div>
 
 <!-- ══ PAINEL ADMIN ══ -->
-<div id="adm-overlay" style="display:none;position:fixed;inset:0;background:rgba(15,25,35,0.72);z-index:9999;backdrop-filter:blur(4px);align-items:center;justify-content:center;">
+<!-- ── Modal Troca de Senha ── -->
+<div id="pwd-overlay" style="display:none;position:fixed;inset:0;background:rgba(15,25,35,0.72);z-index:9999;backdrop-filter:blur(4px);align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:16px;padding:32px;width:360px;max-width:90vw;box-shadow:0 20px 60px rgba(0,0,0,0.25);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <div style="font-size:17px;font-weight:700;color:#0F1923;">Alterar Senha</div>
+      <button onclick="closePwdModal()" style="background:none;border:none;cursor:pointer;color:#8A9BB0;padding:4px;border-radius:6px;display:flex;"><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M4 4l12 12M16 4L4 16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div>
+        <label style="display:block;font-size:11px;font-weight:700;color:#4A5568;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;">Senha Atual</label>
+        <input type="password" id="pwd-atual" placeholder="••••••" style="width:100%;padding:10px 12px;border:1px solid #E2E8F0;border-radius:8px;font-family:'Montserrat',sans-serif;font-size:13px;box-sizing:border-box;"/>
+      </div>
+      <div>
+        <label style="display:block;font-size:11px;font-weight:700;color:#4A5568;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;">Nova Senha</label>
+        <input type="password" id="pwd-nova" placeholder="Mínimo 6 caracteres" style="width:100%;padding:10px 12px;border:1px solid #E2E8F0;border-radius:8px;font-family:'Montserrat',sans-serif;font-size:13px;box-sizing:border-box;"/>
+      </div>
+      <div>
+        <label style="display:block;font-size:11px;font-weight:700;color:#4A5568;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;">Confirmar Nova Senha</label>
+        <input type="password" id="pwd-confirm" placeholder="Repita a nova senha" style="width:100%;padding:10px 12px;border:1px solid #E2E8F0;border-radius:8px;font-family:'Montserrat',sans-serif;font-size:13px;box-sizing:border-box;"/>
+      </div>
+      <div id="pwd-msg" style="display:none;padding:10px 14px;border-radius:8px;font-size:12px;font-weight:600;"></div>
+      <button onclick="doChangePwd()" style="padding:11px 20px;background:linear-gradient(135deg,#00BFA5,#00897B);border:none;border-radius:8px;color:#fff;font-family:'Montserrat',sans-serif;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.04em;">Salvar Nova Senha</button>
+    </div>
+  </div>
+</div>
+
+ style="display:none;position:fixed;inset:0;background:rgba(15,25,35,0.72);z-index:9999;backdrop-filter:blur(4px);align-items:center;justify-content:center;">
   <div class="adm-modal">
     <div class="adm-hdr">
       <div><div style="font-size:18px;font-weight:700;color:#0F1923;">Gestão de Usuários</div><div style="font-size:12px;color:#8A9BB0;margin-top:3px;">Criar, editar e gerenciar contas da plataforma</div></div>
@@ -1480,9 +1509,44 @@ function applySidebarUser(u){
   if(sn)sn.textContent=nome;
   if(sr)sr.textContent=u.nivel_label||'Broker';
   if(ab)ab.style.display=(u.nivel>=5)?'flex':'none';
+
+  // Controle de visibilidade da seção Cadastros (só nível >= 4 vê)
+  var showCadastros=u.nivel>=4;
+  var sec=document.getElementById('nav-section-cadastros');
+  var nc=document.getElementById('nav-clientes');
+  var nm=document.getElementById('nav-metas');
+  var np=document.getElementById('nav-parametrizacao');
+  var disp=showCadastros?'flex':'none';
+  if(sec)sec.style.display=showCadastros?'block':'none';
+  if(nc)nc.style.display=disp;
+  if(nm)nm.style.display=disp;
+  if(np)np.style.display=disp;
 }
 
-// ── Painel Admin ──
+// ── Troca de Senha ──
+function openChangePwd(){
+  ['pwd-atual','pwd-nova','pwd-confirm'].forEach(function(id){document.getElementById(id).value='';});
+  document.getElementById('pwd-msg').style.display='none';
+  document.getElementById('pwd-overlay').style.display='flex';
+}
+function closePwdModal(){document.getElementById('pwd-overlay').style.display='none';}
+function _pwdMsg(txt,ok){var el=document.getElementById('pwd-msg');el.textContent=txt;el.style.display='block';el.style.background=ok?'#E0F5F2':'#FEF2F2';el.style.color=ok?'#00695C':'#991B1B';el.style.border=ok?'1px solid #B2E8E0':'1px solid #FECACA';if(ok)setTimeout(function(){closePwdModal();},1800);}
+async function doChangePwd(){
+  var atual=document.getElementById('pwd-atual').value;
+  var nova=document.getElementById('pwd-nova').value;
+  var conf=document.getElementById('pwd-confirm').value;
+  if(!atual||!nova){_pwdMsg('Preencha todos os campos.',false);return;}
+  if(nova.length<6){_pwdMsg('Nova senha deve ter mínimo 6 caracteres.',false);return;}
+  if(nova!==conf){_pwdMsg('As senhas não coincidem.',false);return;}
+  try{
+    var res=await fetch(API_BASE+'/api/users/me/change-password',{method:'POST',headers:apiHeaders(),body:JSON.stringify({senha_atual:atual,nova_senha:nova})});
+    var data=await res.json();
+    if(!res.ok){_pwdMsg(data.detail||'Erro ao alterar senha.',false);return;}
+    _pwdMsg('Senha alterada com sucesso!',true);
+  }catch(e){_pwdMsg('Erro de conexão.',false);}
+}
+
+
 var NIVEL_MAP={1:'Broker',2:'Líder de Squad',3:'Gerência Mesa RV',4:'Head',5:'Admin'};
 function openAdminPanel(){document.getElementById('adm-overlay').style.display='flex';adminLoadUsers();}
 function closeAdminPanel(){document.getElementById('adm-overlay').style.display='none';}
@@ -1526,7 +1590,7 @@ async function adminCreateUser(){
   var payload={name:document.getElementById('nu-fullname').value.trim(),username:document.getElementById('nu-username').value.trim(),email:document.getElementById('nu-email').value.trim()||null,nivel:parseInt(document.getElementById('nu-nivel').value),password:document.getElementById('nu-pass').value};
   if(!payload.name||!payload.username||!payload.password){_admMsg('nu-msg','Preencha nome, usuário e senha.',false);return;}
   if(payload.password.length<6){_admMsg('nu-msg','Senha mínimo 6 caracteres.',false);return;}
-  try{var res=await fetch(API_BASE+'/api/users/',{method:'POST',headers:apiHeaders(),body:JSON.stringify(payload)});var data=await res.json();if(!res.ok){_admMsg('nu-msg',data.detail||'Erro.',false);return;}
+  try{var res=await fetch(API_BASE+'/api/users/',{method:'POST',headers:apiHeaders(),body:JSON.stringify(payload)});var data=await res.json();if(!res.ok){var errMsg=typeof data.detail==='string'?data.detail:(Array.isArray(data.detail)?data.detail.map(function(e){return e.msg;}).join(', '):'Erro ao criar usuário.');_admMsg('nu-msg',errMsg,false);return;}
   _admMsg('nu-msg','Conta criada!',true);['nu-fullname','nu-username','nu-email','nu-pass'].forEach(function(id){document.getElementById(id).value='';});document.getElementById('nu-nivel').value='1';adminLoadUsers();}catch(e){_admMsg('nu-msg','Erro de conexão.',false);}
 }
 
