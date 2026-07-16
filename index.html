@@ -465,7 +465,7 @@ table.flow-table{width:100%;border-collapse:collapse;font-size:12px;}
         <div class="form-group"><label class="form-label">Volume Financeiro (R$)</label><input type="number" id="f-vol-fin" placeholder="0,00" step="0.01" oninput="calcComissao();calcCorretagem();"/></div>
         <hr class="form-divider"/><div class="form-section-label">Comissão / ROA</div>
         <div class="form-group"><label class="form-label">ROA %</label><input type="number" id="f-roa" placeholder="0,0000" step="0.0001" oninput="calcComissao()"/></div>
-        <div class="form-group"><label class="form-label">Comissão Estimada (R$)</label><input type="number" id="f-comissao" placeholder="Calculado automaticamente" readonly style="background:var(--bg);color:var(--teal-dark);font-weight:600;"/></div>
+        <div class="form-group"><label class="form-label">Receita Escritório (R$)</label><input type="number" id="f-comissao" placeholder="Calculado automaticamente" readonly style="background:var(--bg);color:var(--teal-dark);font-weight:600;"/><div id="f-comissao-breakdown" style="display:none;margin-top:5px;font-size:11px;color:var(--text-secondary);line-height:1.6;"></div></div>
         <div id="f-roa-info" class="form-group full" style="display:none;"><div style="font-size:11px;color:var(--teal-dark);background:var(--teal-light);padding:8px 10px;border-radius:6px;">ROA padronizado em <strong>0,3750%</strong> para este tipo de operação.</div></div>
         <div id="f-corretagem-wrap" class="form-group full" style="display:none;padding:12px;border:1px dashed var(--border);border-radius:8px;background:var(--bg);margin-top:4px;">
           <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;cursor:pointer;">
@@ -978,24 +978,35 @@ function onTipoChange(preserveValues){
   }
   calcComissao();
 }
-function calcComissao(){var vol=parseFloat(document.getElementById('f-vol-fin').value)||0;var roa=parseFloat(document.getElementById('f-roa').value)||0;var comm=vol*roa/100;document.getElementById('f-comissao').value=comm>0?comm.toFixed(2):'';}
-function toggleCorretagemFields(){
-  var chk=document.getElementById('f-add-corretagem');
-  if(!chk)return;
-  if(!chk.checked){
-    document.getElementById('f-corr-comissao').value='';
-  } else {
-    calcCorretagem();
-  }
+function calcComissao(){calcCorretagem();}function toggleCorretagemFields(){
+  calcCorretagem();
 }
 function calcCorretagem(){
   var chk=document.getElementById('f-add-corretagem');
-  if(!chk||!chk.checked)return;
+  var corrEl=document.getElementById('f-corr-comissao');
+  var commEl=document.getElementById('f-comissao');
+  var breakdown=document.getElementById('f-comissao-breakdown');
+  var ativo=chk&&chk.checked;
   var ROA_CORR=0.3750;
-  var volEl=document.getElementById('f-vol-fin');
-  var vol=volEl?parseFloat(volEl.value)||0:0;
-  var comm=vol*ROA_CORR/100;
-  document.getElementById('f-corr-comissao').value=comm>0?comm.toFixed(2):'';
+  var vol=parseFloat((document.getElementById('f-vol-fin')||{}).value)||0;
+  var roa=parseFloat((document.getElementById('f-roa')||{}).value)||0;
+  var commBase=vol*roa/100;
+  if(ativo){
+    var commCorr=vol*ROA_CORR/100;
+    if(corrEl) corrEl.value=commCorr>0?commCorr.toFixed(2):'';
+    var total=commBase+commCorr;
+    if(commEl) commEl.value=total>0?total.toFixed(2):'';
+    if(breakdown){
+      breakdown.style.display='block';
+      breakdown.innerHTML=
+        '<span style="color:var(--text-muted)">Estruturado:</span> <strong>R$ '+commBase.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'</strong>'+
+        ' &nbsp;+&nbsp; <span style="color:var(--text-muted)">Corretagem (0,375%):</span> <strong>R$ '+commCorr.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'</strong>';
+    }
+  } else {
+    if(corrEl) corrEl.value='';
+    if(commEl) commEl.value=commBase>0?commBase.toFixed(2):'';
+    if(breakdown) breakdown.style.display='none';
+  }
 }
 function calcConf(){
   var qtd=parseFloat(document.getElementById('f-qtd').value)||0;var preco=parseFloat(document.getElementById('f-preco').value)||0;var saldo=parseFloat(document.getElementById('f-saldo').value)||0;var debito=qtd*preco;
