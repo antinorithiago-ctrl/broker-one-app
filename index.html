@@ -1101,18 +1101,11 @@ select option { background: var(--ink-3); color: var(--text); }
       <div class="form-grid">
         <div class="form-group"><label class="form-label">Código do Cliente *</label><input type="text" id="f-cliente-cod" placeholder="Ex: 11590595"/></div>
         <div class="form-group"><label class="form-label">Assessor *</label>
-          <select id="f-assessor"><option value="">Selecione...</option>
-            <option>ADRIANO GALLO</option><option>ANA CAROLINA BARRETO DA SILVA</option>
-            <option>ANDRE RODRIGUES DE SOUZA E SILVA</option><option>BRUNA NASCIMENTO</option>
-            <option>CARLA GARCIA DE CARVALHO MACRIANI</option><option>CIRO BERNARDINO BIAZIM</option>
-            <option>GEISLA DANIELA DE MELO FARCHE</option><option>GUSTAVO HENRIQUE SILVA NOGUEIRA</option>
-            <option>LIGIA CAROLINA RUZZA DE OLIVEIRA</option><option>MARIANA TOFFETI BERGAMINI</option>
-            <option>PAULA BERNARDES VALIM</option>
-          </select>
+          <select id="f-assessor"><option value="">Selecione...</option></select>
         </div>
         <div class="form-group"><label class="form-label">Data</label><input type="date" id="f-data"/></div>
         <div class="form-group"><label class="form-label">Status</label>
-          <select id="f-status"><option value="push">Enviar Push</option><option value="aguardando">Aguardando Aprovação</option><option value="moc">MOC</option></select>
+          <select id="f-status"><option value="push" selected>Enviar Push</option><option value="aguardando">Aguardando Aprovação</option><option value="moc">MOC</option></select>
         </div>
         <hr class="form-divider"/><div class="form-section-label">Operação</div>
         <div class="form-group full"><label class="form-label">Tipo de Boleta *</label>
@@ -1123,10 +1116,10 @@ select option { background: var(--ink-3); color: var(--text); }
           </select>
         </div>
         <div class="form-group full"><label class="form-label">Detalhes</label><textarea id="f-detalhes" placeholder="Descreva a operação, ativo, estratégia..." style="min-height:56px;"></textarea></div>
-        <div id="f-papel-wrap" class="form-group" style="display:none;"><label class="form-label">Papel (Ticker)</label><input type="text" id="f-papel" placeholder="Ex: PETR4, VALE3..." style="text-transform:uppercase;"/></div>
-        <div class="form-group"><label class="form-label">Volume Financeiro (R$)</label><input type="number" id="f-vol-fin" placeholder="0,00" step="0.01" oninput="calcComissao();calcCorretagem();"/></div>
+        <div id="f-papel-wrap" class="form-group" style="display:none;"><label class="form-label">Operação + Ticker</label><input type="text" id="f-papel" placeholder="Ex: Compra PETR4, Venda VALE3..." style="text-transform:uppercase;"/></div>
+        <div class="form-group"><label class="form-label">Volume Financeiro (R$)</label><input type="text" id="f-vol-fin" placeholder="0,00" oninput="maskVolFin(this);calcComissao();calcCorretagem();" inputmode="decimal"/></div>
         <hr class="form-divider"/><div class="form-section-label">Comissão / ROA</div>
-        <div class="form-group"><label class="form-label">ROA %</label><input type="number" id="f-roa" placeholder="0,0000" step="0.0001" oninput="calcComissao()"/></div>
+        <div class="form-group"><label class="form-label">ROA %</label><input type="number" id="f-roa" placeholder="0,0000" step="0.0001" oninput="calcComissao()" style="background:var(--ink-4);color:var(--coral);font-weight:700;border-color:var(--border-2);"/></div>
         <div class="form-group"><label class="form-label">Receita Escritório (R$)</label><input type="number" id="f-comissao" placeholder="Calculado automaticamente" readonly style="background:var(--bg);color:var(--teal-dark);font-weight:600;"/><div id="f-comissao-breakdown" style="display:none;margin-top:5px;font-size:11px;color:var(--text-secondary);line-height:1.6;"></div></div>
         <div id="f-roa-info" class="form-group full" style="display:none;"><div style="font-size:11px;color:var(--teal-dark);background:var(--teal-light);padding:8px 10px;border-radius:6px;">ROA padronizado em <strong>0,3750%</strong> para este tipo de operação.</div></div>
         <div id="f-corretagem-wrap" class="form-group full" style="display:none;padding:12px;border:1px dashed var(--border);border-radius:8px;background:var(--bg);margin-top:4px;">
@@ -1138,8 +1131,8 @@ select option { background: var(--ink-3); color: var(--text); }
             <div class="form-group full" style="font-size:10px;color:var(--text-muted);">Esta receita será contabilizada separadamente como <strong>Corretagem</strong>, enquanto o restante permanece lançado em <strong>Estruturados</strong>.</div>
           </div>
         </div>
-        <hr class="form-divider"/><div class="form-section-label">Conferência de Débito</div>
-        <div class="form-group full" style="font-size:11px;color:var(--text-muted);">Preencha caso a operação exija verificação de saldo disponível do cliente.</div>
+        <hr class="form-divider"/><div class="form-section-label">Conferência de Débito <span style="font-weight:400;color:var(--text-3);font-size:10px;letter-spacing:.04em;">(opcional)</span></div>
+        <div class="form-group full" style="font-size:11px;color:var(--text-3);">Preencha caso a operação exija verificação de saldo disponível do cliente.</div>
         <div class="form-group"><label class="form-label">Saldo Disponível (R$)</label><input type="number" id="f-saldo" placeholder="Opcional" step="0.01" oninput="calcConf()"/></div>
         <div class="form-group"><label class="form-label">Quantidade</label><input type="number" id="f-qtd" placeholder="0" oninput="calcConf()"/></div>
         <div class="form-group"><label class="form-label">Preço do Papel (R$)</label><input type="number" id="f-preco" placeholder="0,00" step="0.01" oninput="calcConf()"/></div>
@@ -1511,7 +1504,7 @@ function calcCorretagem(){
   var breakdown=document.getElementById('f-comissao-breakdown');
   var ativo=chk&&chk.checked;
   var ROA_CORR=0.3750;
-  var vol=parseFloat((document.getElementById('f-vol-fin')||{}).value)||0;
+  var vol=getVolFinRaw();
   var roa=parseFloat((document.getElementById('f-roa')||{}).value)||0;
   var commBase=vol*roa/100;
   if(ativo){
@@ -1539,6 +1532,7 @@ function calcConf(){
 }
 
 function openFlowModal(id){
+  populateAssessores();
   editingFlowId=id||null;var item=id?flowItems.find(function(i){return i.id===id;}):null;
   document.getElementById('flow-modal-title').textContent=item?'Editar Boleta':'Nova Boleta';
   document.getElementById('flow-delete-btn').style.display=item?'inline-flex':'none';
@@ -1584,7 +1578,7 @@ function saveFlowItem(){
   var now=new Date().toISOString();
   var addCorrChk=document.getElementById('f-add-corretagem');
   var isCorretagemAdicional=!!(tipo==='Estruturados'&&addCorrChk&&addCorrChk.checked);
-  var data={clienteCod:cod,assessor:ass,data:document.getElementById('f-data').value,tipo:tipo,detalhes:document.getElementById('f-detalhes').value.trim(),papel:document.getElementById('f-papel').value.toUpperCase().trim(),volFin:parseFloat(document.getElementById('f-vol-fin').value)||0,roa:parseFloat(document.getElementById('f-roa').value)||0,comissao:parseFloat(document.getElementById('f-comissao').value)||0,status:document.getElementById('f-status').value,saldo:saldo||null,qtd:qtd||null,preco:preco||null,debito:debito||null,confStatus:debito>0&&saldo>0?(saldo>=debito?'ok':'cancelar'):null,
+  var data={clienteCod:cod,assessor:ass,data:document.getElementById('f-data').value,tipo:tipo,detalhes:document.getElementById('f-detalhes').value.trim(),papel:document.getElementById('f-papel').value.toUpperCase().trim(),volFin:getVolFinRaw(),roa:parseFloat(document.getElementById('f-roa').value)||0,comissao:parseFloat(document.getElementById('f-comissao').value)||0,status:document.getElementById('f-status').value,saldo:saldo||null,qtd:qtd||null,preco:preco||null,debito:debito||null,confStatus:debito>0&&saldo>0?(saldo>=debito?'ok':'cancelar'):null,
     corretagemAdicional:isCorretagemAdicional,
     corretagemVolFin:isCorretagemAdicional?(parseFloat(document.getElementById('f-vol-fin').value)||0):null,
     corretagemRoa:isCorretagemAdicional?0.3750:null,
@@ -1804,6 +1798,8 @@ document.getElementById('flow-overlay').addEventListener('click',function(e){if(
   var editingParamId=null;
 
   function loadParam(){try{paramData=JSON.parse(localStorage.getItem(PARAM_KEY)||'[]');}catch(e){paramData=[];}}
+  // Expõe dados globalmente para uso em outros módulos (ex: select de assessores no Flow)
+  window.getParamData=function(){loadParam();return paramData;};
   function saveParam2(){localStorage.setItem(PARAM_KEY,JSON.stringify(paramData));}
 
   function populateParamFilters(){
@@ -2107,6 +2103,49 @@ async function doLogin(){
     if(errEl){errEl.textContent='Sem conexão com o servidor.';errEl.style.display='block';}
     if(btn)btn.disabled=false;if(btnTxt)btnTxt.style.display='';if(spin)spin.style.display='none';
   }
+}
+
+
+// ── Máscara de volume financeiro ────────────────────────────────────────────
+function maskVolFin(el){
+  var raw=el.value.replace(/[^\d]/g,'');
+  if(!raw){el.value='';return;}
+  var num=parseInt(raw,10)/100;
+  el.value=num.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+
+function getVolFinRaw(){
+  var el=document.getElementById('f-vol-fin');
+  if(!el||!el.value)return 0;
+  // converter "1.234,56" → 1234.56
+  return parseFloat(el.value.replace(/\./g,'').replace(',','.'))||0;
+}
+
+// ── Popular assessores com base no usuário logado ────────────────────────────
+function populateAssessores(){
+  var sel=document.getElementById('f-assessor');
+  if(!sel)return;
+  // Pegar assessores da Parametrização que pertencem ao broker logado
+  var params=window.getParamData?window.getParamData():[];
+  var userName=currentUser?currentUser.name:'';
+  var userNivel=currentUser?currentUser.nivel:1;
+  // Nivel 1 (Broker): filtra pelo nome do broker na Parametrização
+  // Nivel >= 2: vê todos
+  var filtered=params.filter(function(p){
+    if(userNivel>=2)return true;
+    return (p.broker||'').trim().toUpperCase()===(userName||'').trim().toUpperCase();
+  });
+  // Extrair assessores únicos
+  var assessores=[...new Set(filtered.map(function(p){return(p.assessor||'').trim();}).filter(Boolean))].sort();
+  // Reconstruir select
+  sel.innerHTML='<option value="">Selecione...</option>';
+  assessores.forEach(function(a){
+    var opt=document.createElement('option');
+    opt.value=a;opt.textContent=a;
+    sel.appendChild(opt);
+  });
+  // Se só tem um assessor, selecionar automaticamente
+  if(assessores.length===1)sel.value=assessores[0];
 }
 
 </script>
