@@ -1,1 +1,60 @@
+<div class="page" id="page-flow">
+  <div class="topbar">
+    <div><div class="page-title">Flow <span>· Registro de Boletas</span></div><div class="page-date" id="flow-date"></div></div>
+    <div class="topbar-right">
+      <button class="btn btn-ghost" onclick="importFlowData()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M12 3v12M7 8l5-5 5 5"/></svg>Importar</button>
+      <button class="btn btn-ghost" onclick="exportFlowData()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 3v12"/></svg>Exportar backup</button>
+      <button class="btn btn-primary" onclick="openFlowModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Nova Boleta</button>
+    </div>
+  </div>
+  <div class="stats-strip">
+    <div class="stat-box" style="border-left:3px solid var(--teal);">
+      <div class="stat-label">Boletas · Semana</div><div class="stat-val" id="s-sem-total">0</div><div class="stat-sub" id="s-sem-clientes">0 clientes</div>
+    </div>
+    <div class="stat-box" style="border-left:3px solid var(--teal);">
+      <div class="stat-label">Vol. Financeiro · Semana</div><div class="stat-val teal" id="s-sem-volume">R$ 0</div><div class="stat-sub">Semana atual</div>
+    </div>
+    <div class="stat-box" style="border-left:3px solid var(--teal);">
+      <div class="stat-label">Comissão · Semana</div><div class="stat-val teal" id="s-sem-comissao">R$ 0</div><div class="stat-sub">ROA semana</div>
+    </div>
+    <div class="stat-box" style="border-left:3px solid var(--teal-dark);">
+      <div class="stat-label">Boletas · Mês</div><div class="stat-val" id="s-mes-total">0</div><div class="stat-sub" id="s-mes-clientes">0 clientes</div>
+    </div>
+    <div class="stat-box" style="border-left:3px solid var(--teal-dark);">
+      <div class="stat-label">Vol. Financeiro · Mês</div><div class="stat-val teal" id="s-mes-volume">R$ 0</div><div class="stat-sub">Mês atual</div>
+    </div>
+    <div class="stat-box" style="border-left:3px solid var(--teal-dark);">
+      <div class="stat-label">Comissão · Mês</div><div class="stat-val teal" id="s-mes-comissao">R$ 0</div><div class="stat-sub">ROA mês</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">⏳ Pendentes</div>
+      <div class="stat-val" style="font-size:13px;display:flex;gap:10px;align-items:baseline;">
+        <span style="color:#5B21B6;" id="s-push">0</span><span style="font-size:10px;color:var(--text-muted);">push</span>
+        <span style="color:#D97706;" id="s-wait">0</span><span style="font-size:10px;color:var(--text-muted);">aguard.</span>
+      </div>
+      <div class="stat-sub">Status em aberto</div>
+    </div>
+  </div>
+  <div class="flow-toolbar">
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" id="flow-search" placeholder="Buscar cliente, tipo, papel..." oninput="renderFlow()"/>
+    </div>
+    <div class="filter-pill active" id="fp-all" onclick="setFlowFilter('all')">Todos</div>
+    <div class="filter-pill" id="fp-push" onclick="setFlowFilter('push')"><span class="filter-dot" style="background:var(--status-push-dot)"></span>Enviar Push</div>
+    <div class="filter-pill" id="fp-aguardando" onclick="setFlowFilter('aguardando')"><span class="filter-dot" style="background:var(--status-wait-dot)"></span>Aguardando</div>
+    <div class="filter-pill" id="fp-moc" onclick="setFlowFilter('moc')"><span class="filter-dot" style="background:var(--status-moc-dot)"></span>MOC</div>
+  </div>
+  <div class="flow-table-wrap">
+    <table class="flow-table">
+      <thead><tr>
+        <th>Data</th><th>Cliente</th><th>Assessor</th><th>Tipo</th>
+        <th class="r">Vol. Financeiro</th><th class="r">ROA %</th><th class="r">Comissão</th>
+        <th>Status</th><th>Papel</th><th>Conf.</th><th></th>
+      </tr></thead>
+      <tbody id="flow-tbody"></tbody>
+    </table>
+  </div>
+</div>
 
+<!-- ══ PILOTT ══ -->

@@ -1,0 +1,105 @@
+<div class="page" id="page-pipe">
+  <div class="topbar">
+    <div>
+      <div class="page-title">Pipe <span>· Pipeline Semanal</span></div>
+      <div class="page-date" id="pipe-date"></div>
+    </div>
+    <div class="topbar-right" id="pipe-topbar-actions"></div>
+  </div>
+
+  <!-- Estado vazio -->
+  <div id="pipe-empty" style="display:none;">
+    <div class="coming-soon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+      <h3 id="pipe-empty-title">Nenhuma sessão aberta esta semana</h3>
+      <p id="pipe-empty-sub">O Líder de Squad pode abrir uma nova sessão semanal.</p>
+      <button class="btn btn-primary" id="pipe-btn-nova" onclick="pipeAbrirSessao()" style="display:none;margin-top:16px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;margin-right:6px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Novo Pipe semanal
+      </button>
+    </div>
+  </div>
+
+  <!-- Sessão ativa -->
+  <div id="pipe-sessao" style="display:none;">
+
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
+      <div id="pipe-sessao-badge" style="padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;letter-spacing:.04em;"></div>
+      <div id="pipe-sessao-info" style="font-size:13px;color:var(--text-secondary);"></div>
+      <div style="flex:1;"></div>
+      <div id="pipe-sessao-actions"></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px;">
+      <div class="kpi-card" style="border-top:3px solid var(--teal);">
+        <div class="kpi-label">Corretagem</div>
+        <div class="kpi-value" id="pipe-tot-corr">R$ 0</div>
+      </div>
+      <div class="kpi-card" style="border-top:3px solid #7C3AED;">
+        <div class="kpi-label">COE</div>
+        <div class="kpi-value" id="pipe-tot-coe">R$ 0</div>
+      </div>
+      <div class="kpi-card" style="border-top:3px solid #0EA5E9;">
+        <div class="kpi-label">Estruturados</div>
+        <div class="kpi-value" id="pipe-tot-estr">R$ 0</div>
+      </div>
+      <div class="kpi-card" style="border-top:3px solid var(--text-primary);background:var(--teal-light);">
+        <div class="kpi-label">Total da Semana</div>
+        <div class="kpi-value" id="pipe-tot-total" style="color:var(--teal-dark);font-size:22px;">R$ 0</div>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Assessor</th>
+            <th>Broker</th>
+            <th style="text-align:right;">Corretagem</th>
+            <th style="text-align:right;">COE</th>
+            <th style="text-align:right;">Estruturados</th>
+            <th style="text-align:right;">Total</th>
+            <th style="text-align:center;width:80px;">Ação</th>
+          </tr>
+        </thead>
+        <tbody id="pipe-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de lançamento de linha do Pipe -->
+<div class="overlay" id="modal-pipe-linha" onclick="if(event.target===this)closePipeModal()">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-header">
+      <div class="modal-title">Pipe · <span id="pipe-modal-assessor" style="color:var(--teal-dark);"></span></div>
+      <button class="modal-close" onclick="closePipeModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:grid;gap:14px;">
+        <div class="form-group">
+          <label class="form-label">Corretagem (R$)</label>
+          <input type="number" id="pipe-f-corr" placeholder="0,00" step="0.01" min="0" oninput="pipeSomaModal()" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-family:'Montserrat',sans-serif;font-size:13px;box-sizing:border-box;"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">COE (R$)</label>
+          <input type="number" id="pipe-f-coe" placeholder="0,00" step="0.01" min="0" oninput="pipeSomaModal()" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-family:'Montserrat',sans-serif;font-size:13px;box-sizing:border-box;"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Estruturados (R$)</label>
+          <input type="number" id="pipe-f-estr" placeholder="0,00" step="0.01" min="0" oninput="pipeSomaModal()" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-family:'Montserrat',sans-serif;font-size:13px;box-sizing:border-box;"/>
+        </div>
+        <div style="background:var(--bg);border-radius:8px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:13px;color:var(--text-secondary);font-weight:600;">Total do assessor</span>
+          <span style="font-size:18px;font-weight:700;color:var(--teal-dark);" id="pipe-modal-total">R$ 0,00</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closePipeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="savePipeLinha()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ METAS ══ -->
