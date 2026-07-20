@@ -32,26 +32,53 @@ window.addEventListener('message', function(ev){
 }
 );
 
-function goTo(page){
-  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
-  document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});
-  var pg=document.getElementById('page-'+page);
-  if(pg)pg.classList.add('active');
-  var ni=document.getElementById('nav-'+page);
-  if(ni)ni.classList.add('active');
-  if(page==='pilott') pilottRender();
-  if(page==='flow') renderFlow();
-  if(page==='metas'){
-    var el=document.getElementById('metas-date');
-    if(el)el.textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-    renderMetas();
+function goTo(page) {
+  var container = document.getElementById('page-container');
+  var ni = document.querySelector('.nav-item[data-page="' + page + '"]');
+
+  // Atualizar nav ativo
+  document.querySelectorAll('.nav-item').forEach(function(n){ n.classList.remove('active'); });
+  if (ni) ni.classList.add('active');
+
+  // Se a page já foi carregada, só mostrar
+  var existing = document.getElementById('page-' + page);
+  if (existing) {
+    document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
+    existing.classList.add('active');
+    onPageLoaded(page);
+    return;
   }
-  if(page==='pipe'){ loadPipe(); }
-  if(page==='parametrizacao'){
-    var el=document.getElementById('param-date');
-    if(el)el.textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-    renderParam();
-  }
+
+  // Carregar via fetch
+  container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-3);font-family:var(--font-mono);font-size:12px;">Carregando...</div>';
+
+  fetch('pages/' + page + '.html')
+    .then(function(r) {
+      if (!r.ok) throw new Error('Erro ' + r.status);
+      return r.text();
+    })
+    .then(function(html) {
+      // Remover pages anteriores do container
+      container.innerHTML = html;
+      // Marcar como ativo
+      var pg = document.getElementById('page-' + page);
+      if (pg) pg.classList.add('active');
+      onPageLoaded(page);
+    })
+    .catch(function(e) {
+      container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--red);font-family:var(--font-mono);font-size:12px;">Erro ao carregar página.</div>';
+      console.error('goTo erro:', e);
+    });
+}
+
+// Chamada após cada page ser carregada — inicializa o módulo correto
+function onPageLoaded(page) {
+  if (page === 'flow')           { loadFlow && loadFlow(); }
+  else if (page === 'pilott')    { pilottLoad && pilottLoad(); initUrgency && initUrgency(); }
+  else if (page === 'pipe')      { loadPipe && loadPipe(); }
+  else if (page === 'parametrizacao') { window.renderParam && window.renderParam(); }
+  else if (page === 'metas')     { window.loadMetas && window.loadMetas(); }
+  setDates && setDates(page);
 }
 
 document.addEventListener('keydown',function(e){

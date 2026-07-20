@@ -186,3 +186,30 @@ function populateAaiSelect() {
   });
   if (current) sel.value = current;
 }
+
+
+function applySidebarUser(u){
+  if(!u)return;
+  var nome=u.full_name||u.name||u.username||'Usuário';
+  var initials=nome.split(' ').map(function(p){return p[0]||'';}).slice(0,2).join('').toUpperCase();
+  var av=document.getElementById('sidebar-avatar');
+  var sn=document.getElementById('sidebar-user-name');
+  var sr=document.getElementById('sidebar-user-role');
+  var ab=document.getElementById('sidebar-admin-btn');
+  if(av)av.textContent=initials;
+  if(sn)sn.textContent=nome;
+  if(sr)sr.textContent=u.nivel_label||'Broker';
+  if(ab)ab.style.display=(u.nivel>=5)?'flex':'none';
+
+  // Controle de visibilidade da seção Cadastros (só nível >= 4 vê)
+  var showCadastros=u.nivel>=4;
+  var sec=document.getElementById('nav-section-cadastros');
+  var nc=document.getElementById('nav-clientes');
+  var nm=document.getElementById('nav-metas');
+  var np=document.getElementById('nav-parametrizacao');
+  var disp=showCadastros?'flex':'none';
+  if(sec)sec.style.display=showCadastros?'block':'none';
+  if(nc)nc.style.display=disp;
+  if(nm)nm.style.display=disp;
+  if(np)np.style.display=disp;
+}
