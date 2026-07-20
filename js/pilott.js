@@ -1,6 +1,6 @@
-// ═══════════════════════════════════════════
-//  PILOTT MODULE
-// ═══════════════════════════════════════════
+// Broker ONE — PILOTT
+// ─────────────────────────────────────
+
 // ═══════════════════════════════════════════
 //  PILOTT MODULE
 // ═══════════════════════════════════════════
@@ -189,25 +189,3 @@
   initUrgency();
 })();
 
-
-
-// ── Popular AAI no modal do Pilott
-function populateAaiSelect() {
-  var sel = document.getElementById('fAai');
-  if (!sel) return;
-  var params = window.getParamData ? window.getParamData() : [];
-  var userName = currentUser ? currentUser.name : '';
-  var userNivel = currentUser ? currentUser.nivel : 1;
-  var filtered = params.filter(function(p) {
-    if (userNivel >= 2) return true;
-    return (p.broker||'').trim().toUpperCase() === (userName||'').trim().toUpperCase();
-  });
-  var assessores = [...new Set(filtered.map(function(p){ return (p.assessor||'').trim(); }).filter(Boolean))].sort();
-  var current = sel.value;
-  sel.innerHTML = '<option value="">Selecione...</option>';
-  assessores.forEach(function(a) {
-    var opt = document.createElement('option'); opt.value = a; opt.textContent = a;
-    sel.appendChild(opt);
-  });
-  if (current) sel.value = current;
-}

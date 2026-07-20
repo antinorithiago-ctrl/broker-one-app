@@ -1,6 +1,6 @@
-// ═══════════════════════════════════════════
-//  FLOW MODULE
-// ═══════════════════════════════════════════
+// Broker ONE — FLOW
+// ─────────────────────────────────────
+
 // ═══════════════════════════════════════════
 //  FLOW MODULE
 // ═══════════════════════════════════════════
@@ -227,25 +227,3 @@ function importFlowData(){
 }
 document.getElementById('flow-overlay').addEventListener('click',function(e){if(e.target===this)closeFlowModal();});
 
-
-// ── Popular assessores no modal de boleta
-function populateAssessores() {
-  var sel = document.getElementById('f-assessor');
-  if (!sel) return;
-  var params = window.getParamData ? window.getParamData() : [];
-  var userName = currentUser ? currentUser.name : '';
-  var userNivel = currentUser ? currentUser.nivel : 1;
-  var filtered = params.filter(function(p) {
-    if (userNivel >= 2) return true;
-    return (p.broker||'').trim().toUpperCase() === (userName||'').trim().toUpperCase();
-  });
-  var assessores = [...new Set(filtered.map(function(p){ return (p.assessor||'').trim(); }).filter(Boolean))].sort();
-  var current = sel.value;
-  sel.innerHTML = '<option value="">Selecione...</option>';
-  assessores.forEach(function(a) {
-    var opt = document.createElement('option');
-    opt.value = a; opt.textContent = a;
-    sel.appendChild(opt);
-  });
-  if (current) sel.value = current;
-}

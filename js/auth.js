@@ -1,6 +1,6 @@
-// ═══════════════════════════════════════════
-//  AUTH + ADMIN
-// ═══════════════════════════════════════════
+// Broker ONE — AUTH
+// ─────────────────────────────────────
+
 // ═══════════════════════════════════════════
 //  API + AUTH
 // ═══════════════════════════════════════════
@@ -63,52 +63,126 @@ function toggleLxPass(){var i=document.getElementById('login-pass'),o=document.g
 document.getElementById('login-pass').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
 document.getElementById('login-user').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('login-pass').focus();});
 
-async function doLogin() {
-  var user = (document.getElementById('login-user')||{}).value || '';
-  var pass = (document.getElementById('login-pass')||{}).value || '';
-  var errEl = document.getElementById('lx-error');
-  var btn = document.getElementById('lx-btn');
-  var btnTxt = document.getElementById('lx-btn-text');
-  var spin = document.getElementById('lx-spinner');
-  user = user.trim();
-  if (errEl) { errEl.style.display='none'; errEl.textContent=''; }
-  if (!user || !pass) {
-    if (errEl) { errEl.textContent='Preencha usuário e senha.'; errEl.style.display='block'; }
+async function doLogin(){
+  var user=(document.getElementById('login-user')||{}).value||'';
+  var pass=(document.getElementById('login-pass')||{}).value||'';
+  var errEl=document.getElementById('lx-error');
+  var btn=document.getElementById('lx-btn');
+  var btnTxt=document.getElementById('lx-btn-text');
+  var spin=document.getElementById('lx-spinner');
+  user=user.trim();
+  if(errEl){errEl.style.display='none';errEl.textContent='';}
+  if(!user||!pass){
+    if(errEl){errEl.textContent='Preencha usuário e senha.';errEl.style.display='block';}
     return;
   }
-  if (btn) btn.disabled = true;
-  if (btnTxt) btnTxt.style.display = 'none';
-  if (spin) spin.style.display = '';
-  try {
-    var form = new URLSearchParams();
-    form.append('username', user);
-    form.append('password', pass);
-    var res = await fetch(API_BASE + '/login', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-      body: form.toString()
+  if(btn)btn.disabled=true;
+  if(btnTxt)btnTxt.style.display='none';
+  if(spin)spin.style.display='';
+  try{
+    var form=new URLSearchParams();
+    form.append('username',user);
+    form.append('password',pass);
+    var res=await fetch(API_BASE+'/login',{
+      method:'POST',
+      headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body:form.toString()
     });
-    if (res.ok) {
-      var data = await res.json();
-      authToken = data.access_token;
-      currentUser = data.user || {};
-      sessionStorage.setItem('bo_token', authToken);
-      sessionStorage.setItem('bo_user', JSON.stringify(currentUser));
-      var lo = document.getElementById('login-overlay');
-      if (lo) lo.style.display = 'none';
+    if(res.ok){
+      var data=await res.json();
+      authToken=data.access_token;
+      currentUser=data.user||{};
+      sessionStorage.setItem('bo_token',authToken);
+      sessionStorage.setItem('bo_user',JSON.stringify(currentUser));
+      var lo=document.getElementById('login-overlay');
+      if(lo)lo.style.display='none';
       applySidebarUser(currentUser);
       initApp();
     } else {
-      var errData = await res.json().catch(function(){ return {}; });
-      if (errEl) { errEl.textContent = errData.detail || ('Erro ' + res.status); errEl.style.display='block'; }
-      if (btn) btn.disabled = false;
-      if (btnTxt) btnTxt.style.display = '';
-      if (spin) spin.style.display = 'none';
+      var errData=await res.json().catch(function(){return{};});
+      if(errEl){errEl.textContent=errData.detail||('Erro '+res.status);errEl.style.display='block';}
+      if(btn)btn.disabled=false;
+      if(btnTxt)btnTxt.style.display='';
+      if(spin)spin.style.display='none';
     }
-  } catch(e) {
-    if (errEl) { errEl.textContent = 'Sem conexão com o servidor.'; errEl.style.display='block'; }
-    if (btn) btn.disabled = false;
-    if (btnTxt) btnTxt.style.display = '';
-    if (spin) spin.style.display = 'none';
+  }catch(e){
+    if(errEl){errEl.textContent='Sem conexão com o servidor.';errEl.style.display='block';}
+    if(btn)btn.disabled=false;
+    if(btnTxt)btnTxt.style.display='';
+    if(spin)spin.style.display='none';
   }
+}function populateAssessores(){
+  var sel=document.getElementById('f-assessor');
+  if(!sel)return;
+  var params=window.getParamData?window.getParamData():[];
+  var userName=currentUser?currentUser.name:'';
+  var userNivel=currentUser?currentUser.nivel:1;
+  var filtered=params.filter(function(p){
+    if(userNivel>=2)return true;
+    return (p.broker||'').trim().toUpperCase()===(userName||'').trim().toUpperCase();
+  });
+  var assessores=[...new Set(filtered.map(function(p){return(p.assessor||'').trim();}).filter(Boolean))].sort();
+  var current=sel.value;
+  sel.innerHTML='<option value="">Selecione...</option>';
+  assessores.forEach(function(a){
+    var opt=document.createElement('option');opt.value=a;opt.textContent=a;sel.appendChild(opt);
+  });
+  if(current)sel.value=current;
+}
+
+// ── doLogout (from orig)
+function doLogout(){if(!confirm('Deseja sair do Broker ONE?'))return;sessionStorage.removeItem('bo_token');sessionStorage.removeItem('bo_user');location.reload();}
+
+// ── openAdminPanel (from orig)
+function openAdminPanel(){document.getElementById('adm-overlay').style.display='flex';adminLoadUsers();}
+
+// ── openChangePwd (from orig)
+function openChangePwd(){
+  ['pwd-atual','pwd-nova','pwd-confirm'].forEach(function(id){document.getElementById(id).value='';});
+  document.getElementById('pwd-msg').style.display='none';
+  document.getElementById('pwd-overlay').style.display='flex';
+}
+
+// ── escHtml (from orig)
+function escHtml(s){
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── pipeAbrirSessao (from orig)
+async function pipeAbrirSessao(){
+  try{
+    var res=await fetch(API_BASE+'/api/pipe/sessao',{method:'POST',headers:apiHeaders()});
+    if(res.ok){
+      _pipeSessaoAtual=await res.json();
+      await loadPipeLinhas();
+      renderPipeSessao();
+      toast('Pipe semanal aberto!');
+    } else {
+      var txt=await res.text();
+      var detail='';try{detail=JSON.parse(txt).detail;}catch(e){detail=txt||'Erro '+res.status;}
+      console.error('pipeAbrirSessao erro:',res.status,txt);
+      toast(detail||'Erro ao abrir sessão.','error');
+    }
+  } catch(e){ console.error('pipeAbrirSessao catch:',e); toast('Sem conexão com o servidor.','error'); }
+}
+
+// ── Popular AAI no modal do Pilott
+function populateAaiSelect() {
+  var sel = document.getElementById('fAai');
+  if (!sel) return;
+  var params = window.getParamData ? window.getParamData() : [];
+  var userName = currentUser ? currentUser.name : '';
+  var userNivel = currentUser ? currentUser.nivel : 1;
+  var filtered = params.filter(function(p) {
+    if (userNivel >= 2) return true;
+    return (p.broker||'').trim().toUpperCase() === (userName||'').trim().toUpperCase();
+  });
+  var assessores = [...new Set(filtered.map(function(p){ return (p.assessor||'').trim(); }).filter(Boolean))].sort();
+  var current = sel.value;
+  sel.innerHTML = '<option value="">Selecione...</option>';
+  assessores.forEach(function(a) {
+    var opt = document.createElement('option'); opt.value = a; opt.textContent = a;
+    sel.appendChild(opt);
+  });
+  if (current) sel.value = current;
 }

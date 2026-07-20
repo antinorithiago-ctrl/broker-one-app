@@ -1,9 +1,6 @@
-// ═══════════════════════════════════════════
-//  SHARED UTILITIES — Broker ONE
-// ═══════════════════════════════════════════
-var API_BASE = 'https://broker-one-backend-production-90c9.up.railway.app';
-var authToken = sessionStorage.getItem('bo_token') || '';
-var currentUser = null;
+// Broker ONE — SHARED
+// ─────────────────────────────────────
+
 
 // ═══════════════════════════════════════════
 //  SHARED UTILITIES
@@ -32,7 +29,8 @@ window.addEventListener('message', function(ev){
   } else if(d.action === 'save'){
     try{ localStorage.setItem(storageKey, JSON.stringify(d.value)); }catch(e){ /* armazenamento indisponível */ }
   }
-});
+}
+);
 
 function goTo(page){
   document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
@@ -66,17 +64,17 @@ document.addEventListener('keydown',function(e){
   }
 });
 
-
-// ── Máscara de volume financeiro
 function maskVolFin(el){
-  var raw = el.value.replace(/[^0-9]/g, '');
-  if (!raw) { el.value = ''; return; }
-  var num = parseInt(raw, 10) / 100;
-  el.value = num.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+  var raw=el.value.replace(/[^0-9]/g,'');
+  if(!raw){el.value='';return;}
+  var num=parseInt(raw,10)/100;
+  el.value=num.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
 }
 
-function getVolFinRaw() {
-  var el = document.getElementById('f-vol-fin');
-  if (!el || !el.value) return 0;
-  return parseFloat(el.value.replace(/[.]/g, '').replace(',', '.')) || 0;
+function getVolFinRaw(){
+  var el=document.getElementById('f-vol-fin');
+  if(!el||!el.value)return 0;
+  var s=el.value.replace(/[.]/g,'').replace(',','.');
+  return parseFloat(s)||0;
 }
+
