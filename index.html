@@ -2493,413 +2493,54 @@ document.getElementById('login-pass').addEventListener('keydown',function(e){if(
 document.getElementById('login-user').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('login-pass').focus();});
 
 async function doLogin(){
-  var user=document.getElementById('login-user').value.trim();
-  var pass=document.getElementById('login-pass').value;
-  var errEl=document.getElementById('login-error');
+  var user=(document.getElementById('login-user')||{}).value||'';
+  var pass=(document.getElementById('login-pass')||{}).value||'';
+  var errEl=document.getElementById('lx-error');
   var btn=document.getElementById('lx-btn');
   var btnTxt=document.getElementById('lx-btn-text');
   var spin=document.getElementById('lx-spinner');
-  errEl.style.display='none';
-  if(!user||!pass){errEl.textContent='Preencha usuário e senha.';errEl.style.display='block';return;}
-  btn.disabled=true;btnTxt.style.display='none';spin.style.display='';
+  user=user.trim();
+  if(errEl){errEl.style.display='none';errEl.textContent='';}
+  if(!user||!pass){
+    if(errEl){errEl.textContent='Preencha usuário e senha.';errEl.style.display='block';}
+    return;
+  }
+  if(btn)btn.disabled=true;
+  if(btnTxt)btnTxt.style.display='none';
+  if(spin)spin.style.display='';
   try{
     var form=new URLSearchParams();
     form.append('username',user);
     form.append('password',pass);
-    var res=await fetch(API_BASE+'/api/auth/login',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:form});
-    if(!res.ok){var err=await res.json().catch(function(){return{};});errEl.textContent=err.detail||'Usuário ou senha incorretos.';errEl.style.display='block';return;}
-    var data=await res.json();
-    authToken=data.access_token;
-    currentUser=data.user||{};
-    sessionStorage.setItem('bo_token',authToken);
-    sessionStorage.setItem('bo_user',JSON.stringify(currentUser));
-    document.getElementById('login-overlay').style.display='none';
-    applySidebarUser(currentUser);
-    initApp();
-  }catch(e){errEl.textContent='Erro de conexão com o servidor.';errEl.style.display='block';}
-  finally{btn.disabled=false;btnTxt.style.display='';spin.style.display='none';}
-}
-
-function doLogout(){if(!confirm('Deseja sair do Broker ONE?'))return;sessionStorage.removeItem('bo_token');sessionStorage.removeItem('bo_user');location.reload();}
-
-function applySidebarUser(u){
-  if(!u)return;
-  var nome=u.full_name||u.name||u.username||'Usuário';
-  var initials=nome.split(' ').map(function(p){return p[0]||'';}).slice(0,2).join('').toUpperCase();
-  var av=document.getElementById('sidebar-avatar');
-  var sn=document.getElementById('sidebar-user-name');
-  var sr=document.getElementById('sidebar-user-role');
-  var ab=document.getElementById('sidebar-admin-btn');
-  if(av)av.textContent=initials;
-  if(sn)sn.textContent=nome;
-  if(sr)sr.textContent=u.nivel_label||'Broker';
-  if(ab)ab.style.display=(u.nivel>=5)?'flex':'none';
-
-  // Controle de visibilidade da seção Cadastros (só nível >= 4 vê)
-  var showCadastros=u.nivel>=4;
-  var sec=document.getElementById('nav-section-cadastros');
-  var nc=document.getElementById('nav-clientes');
-  var nm=document.getElementById('nav-metas');
-  var np=document.getElementById('nav-parametrizacao');
-  var disp=showCadastros?'flex':'none';
-  if(sec)sec.style.display=showCadastros?'block':'none';
-  if(nc)nc.style.display=disp;
-  if(nm)nm.style.display=disp;
-  if(np)np.style.display=disp;
-}
-
-// ── Troca de Senha ──
-function openChangePwd(){
-  ['pwd-atual','pwd-nova','pwd-confirm'].forEach(function(id){document.getElementById(id).value='';});
-  document.getElementById('pwd-msg').style.display='none';
-  document.getElementById('pwd-overlay').style.display='flex';
-}
-function closePwdModal(){document.getElementById('pwd-overlay').style.display='none';}
-function _pwdMsg(txt,ok){var el=document.getElementById('pwd-msg');el.textContent=txt;el.style.display='block';el.style.background=ok?'#FDEEE9':'#FEF2F2';el.style.color=ok?'#00695C':'#991B1B';el.style.border=ok?'1px solid #F5C4B5':'1px solid #FECACA';if(ok)setTimeout(function(){closePwdModal();},1800);}
-async function doChangePwd(){
-  var atual=document.getElementById('pwd-atual').value;
-  var nova=document.getElementById('pwd-nova').value;
-  var conf=document.getElementById('pwd-confirm').value;
-  if(!atual||!nova){_pwdMsg('Preencha todos os campos.',false);return;}
-  if(nova.length<6){_pwdMsg('Nova senha deve ter mínimo 6 caracteres.',false);return;}
-  if(nova!==conf){_pwdMsg('As senhas não coincidem.',false);return;}
-  try{
-    var res=await fetch(API_BASE+'/api/users/me/change-password',{method:'POST',headers:apiHeaders(),body:JSON.stringify({senha_atual:atual,nova_senha:nova})});
-    var data=await res.json();
-    if(!res.ok){_pwdMsg(data.detail||'Erro ao alterar senha.',false);return;}
-    _pwdMsg('Senha alterada com sucesso!',true);
-  }catch(e){_pwdMsg('Erro de conexão.',false);}
-}
-
-
-var NIVEL_MAP={1:'Broker',2:'Líder de Squad',3:'Gerência Mesa RV',4:'Head',5:'Admin'};
-function openAdminPanel(){document.getElementById('adm-overlay').style.display='flex';adminLoadUsers();}
-function closeAdminPanel(){document.getElementById('adm-overlay').style.display='none';}
-function closeEditModal(){document.getElementById('adm-edit-overlay').style.display='none';}
-
-function _admMsg(id,txt,ok){var el=document.getElementById(id);el.textContent=txt;el.style.display='block';el.style.background=ok?'#FDEEE9':'#FEF2F2';el.style.color=ok?'#00695C':'#991B1B';el.style.border=ok?'1px solid #F5C4B5':'1px solid #FECACA';setTimeout(function(){el.style.display='none';},4000);}
-function _esc(s){return s?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'):'';}
-
-async function adminLoadUsers(){
-  var cont=document.getElementById('adm-users-list');
-  cont.innerHTML='<div style="text-align:center;padding:32px;color:#687280;">Carregando...</div>';
-  try{
-    var res=await fetch(API_BASE+'/api/users/',{headers:apiHeaders()});
-    if(res.status===403){cont.innerHTML='<div style="text-align:center;padding:32px;color:#991B1B;">Sem permissão.</div>';return;}
-    var users=await res.json();
-    if(!users.length){cont.innerHTML='<div style="text-align:center;padding:32px;color:#687280;">Nenhum usuário cadastrado.</div>';return;}
-    var rows='';
-    window._admUsers=users;
-    users.forEach(function(u){
-      var bCls=u.ativo?'n'+u.nivel:'off';
-      var bTxt=u.ativo?(NIVEL_MAP[u.nivel]||''):'Inativo';
-      var nome=_esc(u.full_name||u.name||'');
-      rows+='<tr>'
-        +'<td><strong>'+nome+'</strong></td>'
-        +'<td style="color:#687280;">'+_esc(u.username)+'</td>'
-        +'<td><span class="adm-badge '+bCls+'">'+bTxt+'</span></td>'
-        +'<td><span class="adm-badge '+(u.ativo?'n1':'off')+'">'+(u.ativo?'Ativo':'Inativo')+'</span></td>'
-        +'<td><div style="display:flex;gap:8px;">'
-          +'<button class="adm-btn-sm adm-btn-edit" onclick="admEdit('+u.id+')">Editar</button>'
-          +'<button class="adm-btn-sm adm-btn-del" onclick="adminDeleteUser('+u.id+')">Excluir</button>'
-        +'</div></td>'
-      +'</tr>';
+    var res=await fetch(API_BASE+'/login',{
+      method:'POST',
+      headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body:form.toString()
     });
-    cont.innerHTML='<table class="adm-tbl"><thead><tr><th>Nome</th><th>Usuário</th><th>Nível</th><th>Status</th><th>Ações</th></tr></thead><tbody>'+rows+'</tbody></table>';
-  }catch(e){cont.innerHTML='<div style="text-align:center;padding:32px;color:#991B1B;">Erro de conexão.</div>';}
-}
-
-function admEdit(id){var u=(window._admUsers||[]).find(function(x){return x.id===id;});if(u)openEditUser(u);}
-
-async function adminCreateUser(){
-  var payload={name:document.getElementById('nu-fullname').value.trim(),username:document.getElementById('nu-username').value.trim(),email:document.getElementById('nu-email').value.trim()||null,nivel:parseInt(document.getElementById('nu-nivel').value),password:document.getElementById('nu-pass').value};
-  if(!payload.name||!payload.username||!payload.password){_admMsg('nu-msg','Preencha nome, usuário e senha.',false);return;}
-  if(payload.password.length<6){_admMsg('nu-msg','Senha mínimo 6 caracteres.',false);return;}
-  try{var res=await fetch(API_BASE+'/api/users/',{method:'POST',headers:apiHeaders(),body:JSON.stringify(payload)});var data=await res.json();if(!res.ok){var errMsg=typeof data.detail==='string'?data.detail:(Array.isArray(data.detail)?data.detail.map(function(e){return e.msg;}).join(', '):'Erro ao criar usuário.');_admMsg('nu-msg',errMsg,false);return;}
-  _admMsg('nu-msg','Conta criada!',true);['nu-fullname','nu-username','nu-email','nu-pass'].forEach(function(id){document.getElementById(id).value='';});document.getElementById('nu-nivel').value='1';adminLoadUsers();}catch(e){_admMsg('nu-msg','Erro de conexão.',false);}
-}
-
-function openEditUser(u){
-  document.getElementById('eu-id').value=u.id;
-  document.getElementById('eu-fullname').value=u.full_name||u.name||'';
-  document.getElementById('eu-email').value=u.email||'';
-  document.getElementById('eu-nivel').value=u.nivel||1;
-  document.getElementById('eu-ativo').checked=u.ativo!==false;
-  document.getElementById('eu-pass').value='';
-  document.getElementById('eu-msg').style.display='none';
-  document.getElementById('adm-edit-overlay').style.display='flex';
-}
-
-async function adminSaveEdit(){
-  var id=parseInt(document.getElementById('eu-id').value);
-  var payload={name:document.getElementById('eu-fullname').value.trim()||undefined,email:document.getElementById('eu-email').value.trim()||null,nivel:parseInt(document.getElementById('eu-nivel').value),ativo:document.getElementById('eu-ativo').checked};
-  var pw=document.getElementById('eu-pass').value;
-  if(pw){if(pw.length<6){_admMsg('eu-msg','Senha mínimo 6 caracteres.',false);return;}payload.password=pw;}
-  try{var res=await fetch(API_BASE+'/api/users/'+id,{method:'PATCH',headers:apiHeaders(),body:JSON.stringify(payload)});var data=await res.json();if(!res.ok){_admMsg('eu-msg',data.detail||'Erro.',false);return;}
-  _admMsg('eu-msg','Salvo!',true);setTimeout(function(){closeEditModal();adminLoadUsers();},1200);}catch(e){_admMsg('eu-msg','Erro de conexão.',false);}
-}
-
-async function adminDeleteUser(id){
-  var u=(window._admUsers||[]).find(function(x){return x.id===id;});
-  var name=u?(u.full_name||u.name||u.username):'este usuário';
-  if(!confirm('Excluir "'+name+'"? Não pode ser desfeito.'))return;
-  try{var res=await fetch(API_BASE+'/api/users/'+id,{method:'DELETE',headers:apiHeaders()});
-  if(res.status===204){adminLoadUsers();}else{var d=await res.json().catch(function(){return{};});alert(d.detail||'Erro.');}}catch(e){alert('Erro de conexão.');}
-}
-
-async function syncFlowToAPI() {
-  if(!authToken) return;
-  try {
-    await fetch(API_BASE+'/api/boletas/sync', {method:'POST',headers:apiHeaders(),body:JSON.stringify(flowItems.map(toSnake))});
-  } catch(e) { console.warn('Sync boletas failed',e); }
-}
-
-async function syncTasksToAPI(tasks) {
-  if(!authToken) return;
-  try {
-    await fetch(API_BASE+'/api/tasks/sync', {method:'POST',headers:apiHeaders(),body:JSON.stringify(tasks)});
-  } catch(e) { console.warn('Sync tasks failed',e); }
-}
-
-async function initApp() {
-  setDates();
-  // Load boletas from API
-  try {
-    var res = await fetch(API_BASE+'/api/boletas/', {headers:apiHeaders()});
-    if(res.ok){ var data=await res.json(); flowItems=data.map(fromSnake); localStorage.setItem('brokerone_flow',JSON.stringify(flowItems)); }
-  } catch(e) { loadFlow(); }
-  // Load tasks from API
-  try {
-    var res2 = await fetch(API_BASE+'/api/tasks/', {headers:apiHeaders()});
-    if(res2.ok){ var td=await res2.json(); var s=JSON.parse(localStorage.getItem('brokerone_pilott')||'{"tasks":[]}'); s.tasks=td; localStorage.setItem('brokerone_pilott',JSON.stringify(s)); }
-  } catch(e) { /* use localStorage */ }
-  renderFlow(); updateFlowBadge(); pilottRender();
-}
-
-// Patch saveFlow to also sync
-var _origSaveFlow = saveFlow;
-saveFlow = function() { _origSaveFlow(); syncFlowToAPI(); };
-
-// ═══════════════════════════════════════════
-//  INIT
-// ═══════════════════════════════════════════
-setDates();
-try{currentUser=JSON.parse(sessionStorage.getItem('bo_user')||'null');}catch(e){}
-if(authToken){
-  document.getElementById('login-overlay').style.display='none';
-  applySidebarUser(currentUser);
-  initApp();
-}else{
-  loadFlow();renderFlow();updateFlowBadge();
-}
-
-// ════════════════════════════════════════════
-//  PIPE — Pipeline Semanal
-// ════════════════════════════════════════════
-var _pipeSessaoAtual = null;   // objeto da sessão corrente
-var _pipeLinhas      = [];     // array de linhas da sessão
-var _pipeLinhaId     = null;   // id da linha sendo editada no modal
-
-var PIPE_MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-
-function pipeFmt(v){
-  return 'R$ ' + Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
-}
-
-async function loadPipe(){
-  // atualiza data
-  var el=document.getElementById('pipe-date');
-  if(el) el.textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-
-  try{
-    var res=await fetch(API_BASE+'/api/pipe/sessao/atual',{headers:apiHeaders()});
     if(res.ok){
-      _pipeSessaoAtual=await res.json();
-      await loadPipeLinhas();
-      renderPipeSessao();
-    } else if(res.status===404){
-      _pipeSessaoAtual=null;
-      _pipeLinhas=[];
-      renderPipeVazio();
+      var data=await res.json();
+      authToken=data.access_token;
+      currentUser=data.user||{};
+      sessionStorage.setItem('bo_token',authToken);
+      sessionStorage.setItem('bo_user',JSON.stringify(currentUser));
+      var lo=document.getElementById('login-overlay');
+      if(lo)lo.style.display='none';
+      applySidebarUser(currentUser);
+      initApp();
     } else {
-      renderPipeVazio('Erro ao carregar sessão.');
+      var errData=await res.json().catch(function(){return{};});
+      if(errEl){errEl.textContent=errData.detail||('Erro '+res.status);errEl.style.display='block';}
+      if(btn)btn.disabled=false;
+      if(btnTxt)btnTxt.style.display='';
+      if(spin)spin.style.display='none';
     }
-  } catch(e){
-    renderPipeVazio('Sem conexão com o servidor.');
+  }catch(e){
+    if(errEl){errEl.textContent='Sem conexão com o servidor.';errEl.style.display='block';}
+    if(btn)btn.disabled=false;
+    if(btnTxt)btnTxt.style.display='';
+    if(spin)spin.style.display='none';
   }
 }
-
-function renderPipeVazio(msg){
-  document.getElementById('pipe-empty').style.display='block';
-  document.getElementById('pipe-sessao').style.display='none';
-  document.getElementById('pipe-topbar-actions').innerHTML='';
-  if(msg){
-    document.getElementById('pipe-empty-title').textContent=msg;
-    document.getElementById('pipe-empty-sub').textContent='';
-    document.getElementById('pipe-btn-nova').style.display='none';
-    return;
-  }
-  document.getElementById('pipe-empty-title').textContent='Nenhuma sessão aberta esta semana';
-  document.getElementById('pipe-empty-sub').textContent='O Líder de Squad pode abrir uma nova sessão semanal.';
-  // só Líder (nivel>=2) pode abrir
-  var btnNova=document.getElementById('pipe-btn-nova');
-  if(btnNova) btnNova.style.display=(currentUser&&currentUser.nivel>=2)?'inline-flex':'none';
-}
-
-function renderPipeSessao(){
-  document.getElementById('pipe-empty').style.display='none';
-  document.getElementById('pipe-sessao').style.display='block';
-
-  var s=_pipeSessaoAtual;
-  var travada=s.status==='trancada';
-
-  // Badge de status
-  var badge=document.getElementById('pipe-sessao-badge');
-  if(travada){
-    badge.textContent='TRANCADA';
-    badge.style.cssText='padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;letter-spacing:.04em;background:#FEE2E2;color:#991B1B;';
-  } else {
-    badge.textContent='ABERTA';
-    badge.style.cssText='padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;letter-spacing:.04em;background:var(--teal-light);color:var(--teal-dark);';
-  }
-
-  // Info da sessão
-  var info=document.getElementById('pipe-sessao-info');
-  var d=new Date(s.data_inicio+'T12:00:00');
-  info.textContent='Semana de '+d.getDate()+'/'+PIPE_MESES[d.getMonth()]+'/'+d.getFullYear()+' · Abertura por '+s.lider_nome;
-
-  // Botões de ação da sessão (topbar)
-  // Permissão hierárquica: nivel >= 2 abre/tranca/edita qualquer linha; nivel 1 só edita a própria
-  var nivel=currentUser?currentUser.nivel:0;
-  var isLider=nivel>=2;
-  var actTop=document.getElementById('pipe-topbar-actions');
-  var actSess=document.getElementById('pipe-sessao-actions');
-  actTop.innerHTML='';
-  actSess.innerHTML='';
-  if(!travada && isLider){
-    var btnTravar=document.createElement('button');
-    btnTravar.className='btn btn-danger';
-    btnTravar.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px;margin-right:6px;"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>Trancar sessão';
-    btnTravar.onclick=pipeTravarSessao;
-    actTop.appendChild(btnTravar);
-  }
-
-  // Totais
-  var totCorr=0,totCoe=0,totEstr=0;
-  _pipeLinhas.forEach(function(l){totCorr+=l.corretagem||0;totCoe+=l.coe||0;totEstr+=l.estruturados||0;});
-  document.getElementById('pipe-tot-corr').textContent=pipeFmt(totCorr);
-  document.getElementById('pipe-tot-coe').textContent=pipeFmt(totCoe);
-  document.getElementById('pipe-tot-estr').textContent=pipeFmt(totEstr);
-  document.getElementById('pipe-tot-total').textContent=pipeFmt(totCorr+totCoe+totEstr);
-
-  // Tabela
-  var tbody=document.getElementById('pipe-tbody');
-  tbody.innerHTML='';
-  _pipeLinhas.forEach(function(l){
-    var total=(l.corretagem||0)+(l.coe||0)+(l.estruturados||0);
-    var tr=document.createElement('tr');
-    var podeEditar=!travada&&(isLider||(currentUser&&l.broker_id===currentUser.id));
-    tr.innerHTML=
-      '<td style="font-weight:600;">'+escHtml(l.assessor_nome||'—')+'</td>'+
-      '<td style="color:var(--text-secondary);font-size:12px;">'+escHtml(l.broker_nome||'—')+'</td>'+
-      '<td style="text-align:right;">'+pipeFmt(l.corretagem)+'</td>'+
-      '<td style="text-align:right;">'+pipeFmt(l.coe)+'</td>'+
-      '<td style="text-align:right;">'+pipeFmt(l.estruturados)+'</td>'+
-      '<td style="text-align:right;font-weight:700;color:var(--teal-dark);">'+pipeFmt(total)+'</td>'+
-      '<td style="text-align:center;">'+(podeEditar?'<button class="btn-icon" title="Editar" onclick="openPipeModal('+l.id+')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px;"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>':'—')+'</td>';
-    tbody.appendChild(tr);
-  });
-}
-
-async function loadPipeLinhas(){
-  if(!_pipeSessaoAtual) return;
-  var res=await fetch(API_BASE+'/api/pipe/sessao/'+_pipeSessaoAtual.id+'/linhas',{headers:apiHeaders()});
-  if(res.ok) _pipeLinhas=await res.json();
-  else _pipeLinhas=[];
-}
-
-async function pipeAbrirSessao(){
-  try{
-    var res=await fetch(API_BASE+'/api/pipe/sessao',{method:'POST',headers:apiHeaders()});
-    if(res.ok){
-      _pipeSessaoAtual=await res.json();
-      await loadPipeLinhas();
-      renderPipeSessao();
-      toast('Pipe semanal aberto!');
-    } else {
-      var txt=await res.text();
-      var detail='';try{detail=JSON.parse(txt).detail;}catch(e){detail=txt||'Erro '+res.status;}
-      console.error('pipeAbrirSessao erro:',res.status,txt);
-      toast(detail||'Erro ao abrir sessão.','error');
-    }
-  } catch(e){ console.error('pipeAbrirSessao catch:',e); toast('Sem conexão com o servidor.','error'); }
-}
-
-async function pipeTravarSessao(){
-  if(!confirm('Trancar a sessão? Não será mais possível editar os valores.')) return;
-  try{
-    var res=await fetch(API_BASE+'/api/pipe/sessao/'+_pipeSessaoAtual.id+'/trancar',{method:'POST',headers:apiHeaders()});
-    if(res.ok){
-      _pipeSessaoAtual=await res.json();
-      renderPipeSessao();
-      toast('Sessão trancada com sucesso.');
-    } else {
-      var err=await res.json().catch(()=>({}));
-      toast(err.detail||'Erro ao trancar.','error');
-    }
-  } catch(e){ toast('Sem conexão.','error'); }
-}
-
-function openPipeModal(linhaId){
-  var l=_pipeLinhas.find(function(x){return x.id===linhaId;});
-  if(!l) return;
-  _pipeLinhaId=linhaId;
-  document.getElementById('pipe-modal-assessor').textContent=l.assessor_nome||'Assessor';
-  document.getElementById('pipe-f-corr').value=l.corretagem||'';
-  document.getElementById('pipe-f-coe').value=l.coe||'';
-  document.getElementById('pipe-f-estr').value=l.estruturados||'';
-  pipeSomaModal();
-  document.getElementById('modal-pipe-linha').classList.add('open');
-}
-
-function closePipeModal(){
-  document.getElementById('modal-pipe-linha').classList.remove('open');
-  _pipeLinhaId=null;
-}
-
-function pipeSomaModal(){
-  var c=parseFloat(document.getElementById('pipe-f-corr').value)||0;
-  var o=parseFloat(document.getElementById('pipe-f-coe').value)||0;
-  var e=parseFloat(document.getElementById('pipe-f-estr').value)||0;
-  document.getElementById('pipe-modal-total').textContent=pipeFmt(c+o+e);
-}
-
-async function savePipeLinha(){
-  if(!_pipeLinhaId) return;
-  var payload={
-    corretagem:parseFloat(document.getElementById('pipe-f-corr').value)||0,
-    coe:parseFloat(document.getElementById('pipe-f-coe').value)||0,
-    estruturados:parseFloat(document.getElementById('pipe-f-estr').value)||0
-  };
-  try{
-    var res=await fetch(API_BASE+'/api/pipe/linha/'+_pipeLinhaId,{method:'PATCH',headers:apiHeaders(),body:JSON.stringify(payload)});
-    if(res.ok){
-      var updated=await res.json();
-      _pipeLinhas=_pipeLinhas.map(function(l){return l.id===updated.id?updated:l;});
-      renderPipeSessao();
-      closePipeModal();
-      toast('Pipeline atualizado.');
-    } else {
-      var err=await res.json().catch(()=>({}));
-      toast(err.detail||'Erro ao salvar.','error');
-    }
-  } catch(e){ toast('Sem conexão.','error'); }
-}
-
-function escHtml(s){
-  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
 </script>
 
 <!-- Modal Edição em Lote Param -->
