@@ -1,9 +1,6 @@
 // Broker ONE — AUTH
 // ─────────────────────────────────────
 
-// ═══════════════════════════════════════════
-//  API + AUTH
-// ═══════════════════════════════════════════
 var API_BASE = "https://broker-one-backend-production-90c9.up.railway.app";
 var authToken = sessionStorage.getItem('bo_token') || '';
 var currentUser = null;
@@ -58,6 +55,12 @@ function fromSnake(r) {
   };
 }
 
+// ── Key única para avatar (evita inconsistências) ──
+function _avatarKey() {
+  var u = currentUser || {};
+  return 'bo_avatar_' + (u.id || u.username || 'user');
+}
+
 // ── Login ──
 function toggleLxPass(){var i=document.getElementById('login-pass'),o=document.getElementById('lx-eye-open'),c=document.getElementById('lx-eye-closed');if(i.type==='password'){i.type='text';o.style.display='none';c.style.display='';}else{i.type='password';o.style.display='';c.style.display='none';}}
 document.getElementById('login-pass').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
@@ -92,6 +95,10 @@ async function doLogin(){
       var data=await res.json();
       authToken=data.access_token;
       currentUser=data.user||{};
+      // Mesclar dados de perfil salvos localmente (nome/email)
+      var savedProfile = JSON.parse(localStorage.getItem('bo_profile_' + (currentUser.id || currentUser.username)) || '{}');
+      if(savedProfile.name)  currentUser.name      = savedProfile.name;
+      if(savedProfile.email) currentUser.email     = savedProfile.email;
       sessionStorage.setItem('bo_token',authToken);
       sessionStorage.setItem('bo_user',JSON.stringify(currentUser));
       var lo=document.getElementById('login-overlay');
@@ -111,7 +118,9 @@ async function doLogin(){
     if(btnTxt)btnTxt.style.display='';
     if(spin)spin.style.display='none';
   }
-}function populateAssessores(){
+}
+
+function populateAssessores(){
   var sel=document.getElementById('f-assessor');
   if(!sel)return;
   var params=window.getParamData?window.getParamData():[];
@@ -130,23 +139,21 @@ async function doLogin(){
   if(current)sel.value=current;
 }
 
-// ── doLogout (from orig)
+// ── doLogout ──
 function doLogout(){if(!confirm('Deseja sair do Broker ONE?'))return;sessionStorage.removeItem('bo_token');sessionStorage.removeItem('bo_user');location.reload();}
 
-// ── openAdminPanel (from orig)
+// ── openAdminPanel ──
 function openAdminPanel(){document.getElementById('adm-overlay').style.display='flex';adminLoadUsers();}
 
-// ── openChangePwd (from orig)
-function openChangePwd(){
-  openUserPanel();
-}
+// ── openChangePwd — agora abre o painel unificado ──
+function openChangePwd(){ openUserPanel(); }
 
-// ── escHtml (from orig)
+// ── escHtml ──
 function escHtml(s){
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-// ── pipeAbrirSessao (from orig)
+// ── pipeAbrirSessao ──
 async function pipeAbrirSessao(){
   try{
     var res=await fetch(API_BASE+'/api/pipe/sessao',{method:'POST',headers:apiHeaders()});
@@ -164,7 +171,7 @@ async function pipeAbrirSessao(){
   } catch(e){ console.error('pipeAbrirSessao catch:',e); toast('Sem conexão com o servidor.','error'); }
 }
 
-// ── Popular AAI no modal do Pilott
+// ── Popular AAI no modal do Pilott ──
 function populateAaiSelect() {
   var sel = document.getElementById('fAai');
   if (!sel) return;
@@ -184,7 +191,6 @@ function populateAaiSelect() {
   });
   if (current) sel.value = current;
 }
-
 
 function applySidebarUser(u) {
   if (!u) return;
@@ -207,12 +213,11 @@ function applySidebarUser(u) {
   var upInit = document.getElementById('up-avatar-initials');
   if (upInit) upInit.textContent = initials;
 
-  // Carregar foto salva
-  var key = 'bo_avatar_' + (u.id || u.username || 'user');
-  var saved = localStorage.getItem(key);
+  // Carregar foto salva — usa _avatarKey() para key consistente
+  var saved = localStorage.getItem(_avatarKey());
   if (saved && avImg) {
     avImg.src = saved; avImg.style.display = 'block';
-    if (av) av.style.background = 'transparent';
+    if (av) { av.style.background = 'transparent'; av.style.overflow = 'hidden'; }
     if (avInit) avInit.style.display = 'none';
   } else if (avImg) {
     avImg.style.display = 'none';
@@ -234,16 +239,13 @@ function applySidebarUser(u) {
   }
 }
 
-// ══ PAINEL DO USUÁRIO ════════════════════════════════════════════════════
-
-var AVATAR_KEY = 'bo_avatar_' + (currentUser ? currentUser.id || currentUser.username : 'user');
+// ══ PAINEL DO USUÁRIO ══════════════════════════════════════════════════
 
 function openUserPanel() {
   var overlay = document.getElementById('user-panel-overlay');
   if (!overlay) return;
   overlay.classList.add('open');
 
-  // Preencher campos com dados do currentUser
   var u = currentUser || {};
   var nome = u.name || u.full_name || u.username || '';
   var nivelLabels = {1:'Broker',2:'Assessor',3:'Analista',4:'Líder de Squad',5:'Admin'};
@@ -258,13 +260,11 @@ function openUserPanel() {
   if (fNivel) fNivel.value = nivelLabels[u.nivel] || ('Nível ' + (u.nivel||''));
   if (msgEl)  { msgEl.style.display='none'; msgEl.textContent=''; }
 
-  // Limpar campos de senha
   ['up-pwd-atual','up-pwd-nova','up-pwd-confirm'].forEach(function(id){
     var el = document.getElementById(id);
     if (el) el.value = '';
   });
 
-  // Carregar avatar salvo
   loadAvatarInPanel();
 }
 
@@ -274,8 +274,7 @@ function closeUserPanel() {
 }
 
 function loadAvatarInPanel() {
-  var key = 'bo_avatar_' + ((currentUser||{}).id || (currentUser||{}).username || 'user');
-  var saved = localStorage.getItem(key);
+  var saved = localStorage.getItem(_avatarKey());
   var img = document.getElementById('up-avatar-img');
   var initials = document.getElementById('up-avatar-initials');
   if (saved && img) {
@@ -294,14 +293,13 @@ function handleAvatarUpload(input) {
   var reader = new FileReader();
   reader.onload = function(e) {
     var dataUrl = e.target.result;
-    var key = 'bo_avatar_' + ((currentUser||{}).id || (currentUser||{}).username || 'user');
-    localStorage.setItem(key, dataUrl);
+    localStorage.setItem(_avatarKey(), dataUrl);
     // Atualizar no painel
     var img = document.getElementById('up-avatar-img');
     var initials = document.getElementById('up-avatar-initials');
     if (img) { img.src = dataUrl; img.style.display = 'block'; }
     if (initials) initials.style.display = 'none';
-    // Atualizar na sidebar
+    // Atualizar na sidebar imediatamente
     applySidebarUser(currentUser);
   };
   reader.readAsDataURL(file);
@@ -313,15 +311,40 @@ async function saveUserPanel() {
     if (!msgEl) return;
     msgEl.textContent = txt;
     msgEl.style.display = 'block';
-    msgEl.style.background = ok ? 'var(--green-bg)' : 'var(--red-bg)';
-    msgEl.style.color = ok ? 'var(--green)' : 'var(--red)';
+    msgEl.style.background = ok ? 'rgba(34,197,94,.12)' : 'rgba(239,68,68,.12)';
+    msgEl.style.color = ok ? '#4ade80' : '#fca5a5';
+    msgEl.style.border = ok ? '1px solid rgba(34,197,94,.3)' : '1px solid rgba(239,68,68,.3)';
+    msgEl.style.borderRadius = '6px';
+    msgEl.style.padding = '8px 10px';
   }
 
-  var pwdAtual   = (document.getElementById('up-pwd-atual')||{}).value  || '';
-  var pwdNova    = (document.getElementById('up-pwd-nova')||{}).value   || '';
-  var pwdConfirm = (document.getElementById('up-pwd-confirm')||{}).value|| '';
+  var novoNome  = (document.getElementById('up-name')||{}).value  || '';
+  var novoEmail = (document.getElementById('up-email')||{}).value || '';
+  var pwdAtual   = (document.getElementById('up-pwd-atual')||{}).value   || '';
+  var pwdNova    = (document.getElementById('up-pwd-nova')||{}).value    || '';
+  var pwdConfirm = (document.getElementById('up-pwd-confirm')||{}).value || '';
 
-  // Trocar senha se campos preenchidos
+  var salvouAlgo = false;
+
+  // ── 1. Salvar nome e email localmente e atualizar currentUser ──
+  if (novoNome && novoNome !== (currentUser.name || currentUser.full_name || '')) {
+    currentUser.name = novoNome;
+    currentUser.full_name = novoNome;
+    salvouAlgo = true;
+  }
+  if (novoEmail !== (currentUser.email || '')) {
+    currentUser.email = novoEmail;
+    salvouAlgo = true;
+  }
+  if (salvouAlgo) {
+    // Persistir no localStorage e sessionStorage
+    var profileKey = 'bo_profile_' + (currentUser.id || currentUser.username || 'user');
+    localStorage.setItem(profileKey, JSON.stringify({ name: currentUser.name, email: currentUser.email }));
+    sessionStorage.setItem('bo_user', JSON.stringify(currentUser));
+    applySidebarUser(currentUser);
+  }
+
+  // ── 2. Trocar senha se campos preenchidos ──
   if (pwdAtual || pwdNova || pwdConfirm) {
     if (!pwdAtual || !pwdNova || !pwdConfirm) { showMsg('Preencha todos os campos de senha.', false); return; }
     if (pwdNova !== pwdConfirm) { showMsg('Nova senha e confirmação não coincidem.', false); return; }
@@ -336,13 +359,15 @@ async function saveUserPanel() {
         ['up-pwd-atual','up-pwd-nova','up-pwd-confirm'].forEach(function(id){
           var el = document.getElementById(id); if (el) el.value = '';
         });
+        return;
       } else {
         var d = await res.json().catch(function(){return{};});
         showMsg(d.detail || 'Erro ao alterar senha.', false); return;
       }
     } catch(e) { showMsg('Sem conexão com o servidor.', false); return; }
-  } else {
-    showMsg('Salvo!', true);
-    setTimeout(function(){ closeUserPanel(); }, 800);
   }
+
+  // ── 3. Fechar com feedback ──
+  showMsg('Perfil atualizado!', true);
+  setTimeout(function(){ closeUserPanel(); }, 900);
 }
