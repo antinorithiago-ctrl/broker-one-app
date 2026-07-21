@@ -10,7 +10,50 @@ var editingFlowId=null;
 var ROA_FIXO_TIPOS=['Corretagem'];
 var ROA_FIXO=0.3750;
 
-function loadFlow(){try{flowItems=JSON.parse(localStorage.getItem('brokerone_flow')||'[]');}catch(e){flowItems=[];}}
+async function loadFlow(){
+  // 1. Carrega localStorage como fallback imediato
+  try{ flowItems=JSON.parse(localStorage.getItem('brokerone_flow')||'[]'); }catch(e){ flowItems=[]; }
+  renderFlow();
+
+  // 2. Busca do backend e re-renderiza
+  if(typeof authToken==='undefined'||!authToken) return;
+  try{
+    var res=await fetch(API_BASE+'/api/boletas/',{headers:apiHeaders()});
+    if(res.ok){
+      var data=await res.json();
+      flowItems=data.map(function(b){
+        return {
+          id:b.id,
+          clienteCod:b.cliente_cod||b.clienteCod||'',
+          assessor:b.assessor||'',
+          data:b.data||'',
+          tipo:b.tipo||'',
+          detalhes:b.detalhes||'',
+          papel:b.papel||'',
+          volFin:b.vol_fin!=null?b.vol_fin:(b.volFin||0),
+          roa:b.roa||0,
+          comissao:b.comissao||0,
+          status:b.status||'push',
+          saldo:b.saldo||null,
+          qtd:b.qtd||null,
+          preco:b.preco||null,
+          debito:b.debito||null,
+          confStatus:b.conf_status||b.confStatus||null,
+          corretagemAdicional:b.corretagem_adicional||b.corretagemAdicional||false,
+          corretagemComissao:b.corretagem_comissao||b.corretagemComissao||null,
+          createdAt:b.created_at||b.createdAt||'',
+          updatedAt:b.updated_at||b.updatedAt||''
+        };
+      });
+      localStorage.setItem('brokerone_flow',JSON.stringify(flowItems));
+      renderFlow();
+      updateFlowBadge();
+    }
+  }catch(e){
+    console.warn('Flow: erro ao buscar boletas do backend',e);
+  }
+}
+
 function saveFlow(){localStorage.setItem('brokerone_flow',JSON.stringify(flowItems));updateFlowBadge();}
 function updateFlowBadge(){
   var today=todayISO();
@@ -182,7 +225,6 @@ function openFlowModal(id){
   var addCorrChk=document.getElementById('f-add-corretagem');
   if(addCorrChk){
     addCorrChk.checked=!!(item&&item.corretagemAdicional);
-    /* f-corr-vol e f-corr-roa removidos — calculado automaticamente pelo f-vol e ROA fixo */
     document.getElementById('f-corr-comissao').value=item&&item.corretagemComissao?item.corretagemComissao:'';
   }
   if(item&&item.tipo) onTipoChange(true);
@@ -226,4 +268,3 @@ function importFlowData(){
   input.click();
 }
 document.getElementById('flow-overlay').addEventListener('click',function(e){if(e.target===this)closeFlowModal();});
-
