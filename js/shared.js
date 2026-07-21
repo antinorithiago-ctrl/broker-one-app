@@ -93,7 +93,7 @@ function onPageLoaded(page) {
     else if (page === 'parametrizacao') { typeof window.renderParam !== 'undefined' && window.renderParam(); }
     else if (page === 'metas')          { typeof window.loadMetas !== 'undefined' && window.loadMetas(); }
     typeof setDates !== 'undefined' && setDates(page);
-  }, 300);
+  }, 500);
 }
 
 document.addEventListener('keydown',function(e){
