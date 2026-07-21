@@ -49,12 +49,12 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px;flex-shrink:0;"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       Parametrização
     </div>
-  </div>
-  <div class="sidebar-footer">
-    <div id="sidebar-admin-btn" onclick="openAdminPanel()">
+    <div class="nav-item" data-page="admin" id="sidebar-admin-btn" onclick="openAdminPanel()" style="display:none;">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px;flex-shrink:0;"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
       Gerenciar Usuários
     </div>
+  </div>
+  <div class="sidebar-footer">
     <div class="sidebar-avatar" id="sidebar-avatar">T</div>
     <div class="sidebar-user-info">
       <div class="sidebar-user-name" id="sidebar-user-name">Usuário</div>
@@ -69,14 +69,10 @@
   </div>
 </nav>
 
-<div class="main">
-
-
-<div id="page-container">
+<div class="main" id="main-content">
+<div id="page-container" style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;">
   <!-- pages carregadas dinamicamente via fetch -->
 </div>
-
-
 </div><!-- /main -->
 
 <!-- ══ FLOW MODAL ══ -->
@@ -341,5 +337,70 @@
     </div>
   </div>
 </div>
+
+<!-- ══ PAINEL DO USUÁRIO ══ -->
+<div class="overlay" id="user-panel-overlay" onclick="if(event.target===this)closeUserPanel()">
+  <div class="modal" style="max-width:400px;">
+    <div class="modal-header">
+      <div class="modal-title">Meu Perfil</div>
+      <button class="modal-close" onclick="closeUserPanel()">×</button>
+    </div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:20px;">
+
+      <!-- Avatar + upload -->
+      <div style="display:flex;flex-direction:column;align-items:center;gap:12px;">
+        <div style="position:relative;cursor:pointer;" onclick="document.getElementById('avatar-upload').click()">
+          <div id="up-avatar-display" style="width:72px;height:72px;border-radius:50%;background:var(--coral);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:#fff;overflow:hidden;border:3px solid var(--border-2);">
+            <img id="up-avatar-img" src="" style="display:none;width:100%;height:100%;object-fit:cover;"/>
+            <span id="up-avatar-initials" style="font-family:var(--font-mono);">T</span>
+          </div>
+          <div style="position:absolute;bottom:0;right:0;width:22px;height:22px;background:var(--coral);border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid var(--bg-card-2);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" style="width:11px;height:11px;"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          </div>
+        </div>
+        <input type="file" id="avatar-upload" accept="image/*" style="display:none;" onchange="handleAvatarUpload(this)"/>
+        <span style="font-size:11px;color:var(--text-3);">Clique na foto para alterar</span>
+      </div>
+
+      <!-- Campos -->
+      <div class="form-group">
+        <label class="form-label">Nome</label>
+        <input type="text" id="up-name" placeholder="Seu nome completo"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">E-mail</label>
+        <input type="email" id="up-email" placeholder="seu@email.com"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nível de acesso</label>
+        <input type="text" id="up-nivel" readonly style="opacity:.6;cursor:default;"/>
+      </div>
+
+      <!-- Trocar senha -->
+      <div style="border-top:1px solid var(--border);padding-top:16px;">
+        <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px;">Trocar Senha</div>
+        <div class="form-group" style="margin-bottom:10px;">
+          <label class="form-label">Senha atual</label>
+          <input type="password" id="up-pwd-atual" placeholder="••••••••"/>
+        </div>
+        <div class="form-group" style="margin-bottom:10px;">
+          <label class="form-label">Nova senha</label>
+          <input type="password" id="up-pwd-nova" placeholder="••••••••"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Confirmar nova senha</label>
+          <input type="password" id="up-pwd-confirm" placeholder="••••••••"/>
+        </div>
+        <div id="up-msg" style="display:none;font-size:12px;padding:8px 10px;border-radius:6px;margin-top:8px;"></div>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeUserPanel()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveUserPanel()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
