@@ -58,11 +58,14 @@ function goTo(page) {
       return r.text();
     })
     .then(function(html) {
-      // Remover pages anteriores do container
       container.innerHTML = html;
-      // Marcar como ativo
       var pg = document.getElementById('page-' + page);
-      if (pg) pg.classList.add('active');
+      if (pg) {
+        pg.classList.add('active');
+        // Garantir que a page preenche o container
+        pg.style.flex = '1';
+        pg.style.minHeight = '0';
+      }
       onPageLoaded(page);
     })
     .catch(function(e) {
