@@ -1,208 +1,562 @@
-// pipe.js — Módulo Pipe (pipeline semanal)
-// ════════════════════════════════════════════
-//  PIPE — Pipeline Semanal
-// ════════════════════════════════════════════
-var _pipeSessaoAtual = null;   // objeto da sessão corrente
-var _pipeLinhas      = [];     // array de linhas da sessão
-var _pipeLinhaId     = null;   // id da linha sendo editada no modal
+/* ============================================================
+   pipe.js — Pipe | Pipeline Semanal
+   Broker ONE · Blue3 Investimentos
+   ============================================================ */
 
-var PIPE_MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+(function () {
+  'use strict';
 
-function pipeFmt(v){
-  return 'R$ ' + Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
-}
-
-async function loadPipe(){
-  // atualiza data
-  var el=document.getElementById('pipe-date');
-  if(el) el.textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-
-  try{
-    var res=await fetch(API_BASE+'/api/pipe/sessao/atual',{headers:apiHeaders()});
-    if(res.ok){
-      _pipeSessaoAtual=await res.json();
-      await loadPipeLinhas();
-      renderPipeSessao();
-    } else if(res.status===404){
-      _pipeSessaoAtual=null;
-      _pipeLinhas=[];
-      renderPipeVazio();
-    } else {
-      renderPipeVazio('Erro ao carregar sessão.');
-    }
-  } catch(e){
-    renderPipeVazio('Sem conexão com o servidor.');
-  }
-}
-
-function renderPipeVazio(msg){
-  document.getElementById('pipe-empty').style.display='block';
-  document.getElementById('pipe-sessao').style.display='none';
-  document.getElementById('pipe-topbar-actions').innerHTML='';
-  if(msg){
-    document.getElementById('pipe-empty-title').textContent=msg;
-    document.getElementById('pipe-empty-sub').textContent='';
-    document.getElementById('pipe-btn-nova').style.display='none';
-    return;
-  }
-  document.getElementById('pipe-empty-title').textContent='Nenhuma sessão aberta esta semana';
-  document.getElementById('pipe-empty-sub').textContent='O Líder de Squad pode abrir uma nova sessão semanal.';
-  // só Líder (nivel>=2) pode abrir
-  var btnNova=document.getElementById('pipe-btn-nova');
-  if(btnNova) btnNova.style.display=(currentUser&&currentUser.nivel>=2)?'inline-flex':'none';
-}
-
-function renderPipeSessao(){
-  document.getElementById('pipe-empty').style.display='none';
-  document.getElementById('pipe-sessao').style.display='block';
-
-  var s=_pipeSessaoAtual;
-  var travada=s.status==='trancada';
-
-  // Badge de status
-  var badge=document.getElementById('pipe-sessao-badge');
-  if(travada){
-    badge.textContent='TRANCADA';
-    badge.style.cssText='padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;letter-spacing:.04em;background:#FEE2E2;color:#991B1B;';
-  } else {
-    badge.textContent='ABERTA';
-    badge.style.cssText='padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;letter-spacing:.04em;background:var(--teal-light);color:var(--teal-dark);';
-  }
-
-  // Info da sessão
-  var info=document.getElementById('pipe-sessao-info');
-  var d=new Date(s.data_inicio+'T12:00:00');
-  info.textContent='Semana de '+d.getDate()+'/'+PIPE_MESES[d.getMonth()]+'/'+d.getFullYear()+' · Abertura por '+s.lider_nome;
-
-  // Botões de ação da sessão (topbar)
-  // Permissão hierárquica: nivel >= 2 abre/tranca/edita qualquer linha; nivel 1 só edita a própria
-  var nivel=currentUser?currentUser.nivel:0;
-  var isLider=nivel>=2;
-  var actTop=document.getElementById('pipe-topbar-actions');
-  var actSess=document.getElementById('pipe-sessao-actions');
-  actTop.innerHTML='';
-  actSess.innerHTML='';
-  if(!travada && isLider){
-    var btnTravar=document.createElement('button');
-    btnTravar.className='btn btn-danger';
-    btnTravar.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px;margin-right:6px;"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>Trancar sessão';
-    btnTravar.onclick=pipeTravarSessao;
-    actTop.appendChild(btnTravar);
-  }
-
-  // Totais
-  var totCorr=0,totCoe=0,totEstr=0;
-  _pipeLinhas.forEach(function(l){totCorr+=l.corretagem||0;totCoe+=l.coe||0;totEstr+=l.estruturados||0;});
-  document.getElementById('pipe-tot-corr').textContent=pipeFmt(totCorr);
-  document.getElementById('pipe-tot-coe').textContent=pipeFmt(totCoe);
-  document.getElementById('pipe-tot-estr').textContent=pipeFmt(totEstr);
-  document.getElementById('pipe-tot-total').textContent=pipeFmt(totCorr+totCoe+totEstr);
-
-  // Tabela
-  var tbody=document.getElementById('pipe-tbody');
-  tbody.innerHTML='';
-  _pipeLinhas.forEach(function(l){
-    var total=(l.corretagem||0)+(l.coe||0)+(l.estruturados||0);
-    var tr=document.createElement('tr');
-    var podeEditar=!travada&&(isLider||(currentUser&&l.broker_id===currentUser.id));
-    tr.innerHTML=
-      '<td style="font-weight:600;">'+escHtml(l.assessor_nome||'—')+'</td>'+
-      '<td style="color:var(--text-secondary);font-size:12px;">'+escHtml(l.broker_nome||'—')+'</td>'+
-      '<td style="text-align:right;">'+pipeFmt(l.corretagem)+'</td>'+
-      '<td style="text-align:right;">'+pipeFmt(l.coe)+'</td>'+
-      '<td style="text-align:right;">'+pipeFmt(l.estruturados)+'</td>'+
-      '<td style="text-align:right;font-weight:700;color:var(--teal-dark);">'+pipeFmt(total)+'</td>'+
-      '<td style="text-align:center;">'+(podeEditar?'<button class="btn-icon" title="Editar" onclick="openPipeModal('+l.id+')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px;"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>':'—')+'</td>';
-    tbody.appendChild(tr);
-  });
-}
-
-async function loadPipeLinhas(){
-  if(!_pipeSessaoAtual) return;
-  var res=await fetch(API_BASE+'/api/pipe/sessao/'+_pipeSessaoAtual.id+'/linhas',{headers:apiHeaders()});
-  if(res.ok) _pipeLinhas=await res.json();
-  else _pipeLinhas=[];
-}
-
-async function pipeAbrirSessao(){
-  try{
-    var res=await fetch(API_BASE+'/api/pipe/sessao',{method:'POST',headers:apiHeaders()});
-    if(res.ok){
-      _pipeSessaoAtual=await res.json();
-      await loadPipeLinhas();
-      renderPipeSessao();
-      toast('Pipe semanal aberto!');
-    } else {
-      var txt=await res.text();
-      var detail='';try{detail=JSON.parse(txt).detail;}catch(e){detail=txt||'Erro '+res.status;}
-      console.error('pipeAbrirSessao erro:',res.status,txt);
-      toast(detail||'Erro ao abrir sessão.','error');
-    }
-  } catch(e){ console.error('pipeAbrirSessao catch:',e); toast('Sem conexão com o servidor.','error'); }
-}
-
-async function pipeTravarSessao(){
-  if(!confirm('Trancar a sessão? Não será mais possível editar os valores.')) return;
-  try{
-    var res=await fetch(API_BASE+'/api/pipe/sessao/'+_pipeSessaoAtual.id+'/trancar',{method:'POST',headers:apiHeaders()});
-    if(res.ok){
-      _pipeSessaoAtual=await res.json();
-      renderPipeSessao();
-      toast('Sessão trancada com sucesso.');
-    } else {
-      var err=await res.json().catch(()=>({}));
-      toast(err.detail||'Erro ao trancar.','error');
-    }
-  } catch(e){ toast('Sem conexão.','error'); }
-}
-
-function openPipeModal(linhaId){
-  var l=_pipeLinhas.find(function(x){return x.id===linhaId;});
-  if(!l) return;
-  _pipeLinhaId=linhaId;
-  document.getElementById('pipe-modal-assessor').textContent=l.assessor_nome||'Assessor';
-  document.getElementById('pipe-f-corr').value=l.corretagem||'';
-  document.getElementById('pipe-f-coe').value=l.coe||'';
-  document.getElementById('pipe-f-estr').value=l.estruturados||'';
-  pipeSomaModal();
-  document.getElementById('modal-pipe-linha').classList.add('open');
-}
-
-function closePipeModal(){
-  document.getElementById('modal-pipe-linha').classList.remove('open');
-  _pipeLinhaId=null;
-}
-
-function pipeSomaModal(){
-  var c=parseFloat(document.getElementById('pipe-f-corr').value)||0;
-  var o=parseFloat(document.getElementById('pipe-f-coe').value)||0;
-  var e=parseFloat(document.getElementById('pipe-f-estr').value)||0;
-  document.getElementById('pipe-modal-total').textContent=pipeFmt(c+o+e);
-}
-
-async function savePipeLinha(){
-  if(!_pipeLinhaId) return;
-  var payload={
-    corretagem:parseFloat(document.getElementById('pipe-f-corr').value)||0,
-    coe:parseFloat(document.getElementById('pipe-f-coe').value)||0,
-    estruturados:parseFloat(document.getElementById('pipe-f-estr').value)||0
+  /* ── estado ── */
+  var pipeState = {
+    sessoes: [],          // todas as sessões conhecidas
+    sessaoAtual: null,    // objeto PipeSessao ativo no view
+    linhas: [],           // linhas da sessão atual
+    editandoLinhaId: null,
+    historicoAberto: false
   };
-  try{
-    var res=await fetch(API_BASE+'/api/pipe/linha/'+_pipeLinhaId,{method:'PATCH',headers:apiHeaders(),body:JSON.stringify(payload)});
-    if(res.ok){
-      var updated=await res.json();
-      _pipeLinhas=_pipeLinhas.map(function(l){return l.id===updated.id?updated:l;});
-      renderPipeSessao();
-      closePipeModal();
-      toast('Pipeline atualizado.');
+
+  var API_BASE_PIPE = (typeof API_BASE !== 'undefined')
+    ? API_BASE
+    : 'https://broker-one-backend-production-90c9.up.railway.app';
+
+  /* ── helpers de autenticação ── */
+  function getToken() {
+    return (typeof authToken !== 'undefined' && authToken)
+      ? authToken
+      : (sessionStorage.getItem('bo_token') || '');
+  }
+  function getUser() {
+    return (typeof currentUser !== 'undefined' && currentUser) ? currentUser : null;
+  }
+  function authHeaders() {
+    return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() };
+  }
+
+  /* ── formatação BRL ── */
+  function fmtBRL(v) {
+    var n = typeof v === 'number' ? v : 0;
+    return 'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  function parseBRL(s) {
+    if (!s) return 0;
+    var clean = String(s).replace(/[^\d,]/g, '').replace(',', '.');
+    var n = parseFloat(clean);
+    return isNaN(n) ? 0 : n;
+  }
+  window.pipeMaskBRL = function (el) {
+    var raw = el.value.replace(/\D/g, '');
+    if (!raw) { el.value = ''; pipeAtualizarModalTotal(); return; }
+    var n = parseInt(raw, 10) / 100;
+    el.value = 'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    pipeAtualizarModalTotal();
+  };
+  function pipeAtualizarModalTotal() {
+    var c = parseBRL(document.getElementById('pipe-inp-corretagem') ? document.getElementById('pipe-inp-corretagem').value : '');
+    var co = parseBRL(document.getElementById('pipe-inp-coe') ? document.getElementById('pipe-inp-coe').value : '');
+    var e = parseBRL(document.getElementById('pipe-inp-estruturados') ? document.getElementById('pipe-inp-estruturados').value : '');
+    var el = document.getElementById('pipe-modal-total');
+    if (el) el.textContent = fmtBRL(c + co + e);
+  }
+
+  /* ── data / semana ── */
+  function formatarData(iso) {
+    if (!iso) return '';
+    var d = new Date(iso + 'T12:00:00');
+    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+  function semanaLabel(iso) {
+    if (!iso) return '';
+    var d = new Date(iso + 'T12:00:00');
+    var mes = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][d.getMonth()];
+    return 'Semana de ' + String(d.getDate()).padStart(2,'0') + '/' + mes + '/' + d.getFullYear();
+  }
+  function hoje() {
+    var d = new Date();
+    return d.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  }
+
+  /* ── assessores filtrados pelo broker logado ── */
+  function pipeGetAssessores() {
+    var user = getUser();
+    if (!user) return [];
+    var params = (typeof window.getParamData === 'function') ? window.getParamData() : [];
+    if (!params || params.length === 0) return [];
+
+    var nivel = user.nivel || 1;
+    var meuNome = (user.full_name || user.name || '').toLowerCase().trim();
+
+    // nível 1 = broker: só vê seus próprios assessores
+    // nível >= 2: vê todos
+    if (nivel >= 2) {
+      return params.map(function (p) { return p; });
     } else {
-      var err=await res.json().catch(()=>({}));
-      toast(err.detail||'Erro ao salvar.','error');
+      return params.filter(function (p) {
+        var brokerParam = (p.broker || '').toLowerCase().trim();
+        return brokerParam === meuNome;
+      });
     }
-  } catch(e){ toast('Sem conexão.','error'); }
-}
+  }
 
-function escHtml(s){
-  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
+  /* ── UI helpers ── */
+  function el(id) { return document.getElementById(id); }
+  function toast(msg, ok) {
+    if (typeof window.toast === 'function') { window.toast(msg, ok); return; }
+    // fallback simples
+    console.log((ok ? '✓ ' : '✗ ') + msg);
+  }
 
+  /* ── renderização da data no header ── */
+  function pipeRenderHeader() {
+    var dl = el('pipe-date-label');
+    if (dl) dl.textContent = hoje();
+  }
+
+  /* ── visibilidade dos botões por nível ── */
+  function pipeAtualizarBotoes() {
+    var user = getUser();
+    var nivel = user ? (user.nivel || 1) : 1;
+    var btnNova = el('pipe-btn-nova');
+    var btnTrancar = el('pipe-btn-trancar');
+
+    // Botão Nova Sessão: visível para nível >= 2
+    if (btnNova) btnNova.style.display = (nivel >= 2) ? 'inline-flex' : 'none';
+
+    // Botão Trancar: visível para nível >= 2 E só se sessão atual está ABERTA
+    var sessaoAberta = pipeState.sessaoAtual && pipeState.sessaoAtual.status === 'aberta';
+    if (btnTrancar) btnTrancar.style.display = (nivel >= 2 && sessaoAberta) ? 'inline-flex' : 'none';
+  }
+
+  /* ── renderização da sessão ── */
+  function pipeRenderSessao() {
+    var sessao = pipeState.sessaoAtual;
+    var infoEl = el('pipe-sessao-info');
+    var emptyEl = el('pipe-empty-state');
+    var totaisEl = el('pipe-totais');
+    var tableEl = el('pipe-table-wrap');
+    var badge = el('pipe-badge-status');
+    var desc = el('pipe-sessao-desc');
+
+    if (!sessao) {
+      if (infoEl) infoEl.style.display = 'none';
+      if (emptyEl) emptyEl.style.display = 'flex';
+      if (totaisEl) totaisEl.style.display = 'none';
+      if (tableEl) tableEl.style.display = 'none';
+      pipeAtualizarBotoes();
+      return;
+    }
+
+    if (emptyEl) emptyEl.style.display = 'none';
+    if (infoEl) infoEl.style.display = 'flex';
+    if (totaisEl) totaisEl.style.display = 'grid';
+    if (tableEl) tableEl.style.display = 'block';
+
+    var status = sessao.status || 'aberta';
+    if (badge) {
+      badge.textContent = status.toUpperCase();
+      badge.className = 'pipe-badge ' + status;
+    }
+    if (desc) {
+      desc.textContent = semanaLabel(sessao.data_inicio) + ' · Abertura por ' + (sessao.criado_por || '');
+    }
+
+    pipeAtualizarBotoes();
+    pipeRenderLinhas();
+    pipeRenderTotais();
+  }
+
+  /* ── totais ── */
+  function pipeRenderTotais() {
+    var totC = 0, totCO = 0, totE = 0;
+    pipeState.linhas.forEach(function (l) {
+      totC += l.corretagem || 0;
+      totCO += l.coe || 0;
+      totE += l.estruturados || 0;
+    });
+    var tot = totC + totCO + totE;
+    if (el('pipe-total-corretagem')) el('pipe-total-corretagem').textContent = fmtBRL(totC);
+    if (el('pipe-total-coe')) el('pipe-total-coe').textContent = fmtBRL(totCO);
+    if (el('pipe-total-estruturados')) el('pipe-total-estruturados').textContent = fmtBRL(totE);
+    if (el('pipe-total-semana')) el('pipe-total-semana').textContent = fmtBRL(tot);
+  }
+
+  /* ── linhas da tabela ── */
+  function pipeRenderLinhas() {
+    var tbody = el('pipe-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    var sessao = pipeState.sessaoAtual;
+    var trancada = sessao && sessao.status === 'trancada';
+    var user = getUser();
+    var meuNome = user ? (user.full_name || user.name || '').toLowerCase().trim() : '';
+    var nivel = user ? (user.nivel || 1) : 1;
+
+    // Usa assessores da Parametrização filtrados pelo broker logado
+    var assessores = pipeGetAssessores();
+
+    // Também inclui linhas já salvas que podem ser de outros brokers (se nível >= 2)
+    var linhasMap = {};
+    pipeState.linhas.forEach(function (l) { linhasMap[l.assessor_nome] = l; });
+
+    // Para cada assessor do broker, garante uma linha
+    assessores.forEach(function (param) {
+      var nomeFull = param.assessor || param.nome_assessor || '';
+      if (!nomeFull) return;
+
+      var linha = linhasMap[nomeFull] || {
+        id: null,
+        assessor_nome: nomeFull,
+        broker_nome: param.broker || '',
+        corretagem: 0,
+        coe: 0,
+        estruturados: 0
+      };
+
+      // Pode editar? Nível 1 = só suas linhas. Nível >= 2 = qualquer linha. Trancada = ninguém edita
+      var podeEditar = !trancada && (nivel >= 2 ||
+        (param.broker || '').toLowerCase().trim() === meuNome);
+
+      var totLinha = (linha.corretagem || 0) + (linha.coe || 0) + (linha.estruturados || 0);
+      var temDados = totLinha > 0;
+
+      var tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td class="pipe-td-assessor">' + nomeFull + '</td>' +
+        '<td class="pipe-td-broker">' + (linha.broker_nome || param.broker || '') + '</td>' +
+        '<td class="' + (temDados ? '' : 'pipe-td-zero') + '">' + (temDados ? fmtBRL(linha.corretagem || 0) : '—') + '</td>' +
+        '<td class="' + (temDados ? '' : 'pipe-td-zero') + '">' + (temDados ? fmtBRL(linha.coe || 0) : '—') + '</td>' +
+        '<td class="' + (temDados ? '' : 'pipe-td-zero') + '">' + (temDados ? fmtBRL(linha.estruturados || 0) : '—') + '</td>' +
+        '<td class="pipe-td-total">' + (temDados ? fmtBRL(totLinha) : '—') + '</td>' +
+        '<td><button class="pipe-btn-edit" ' + (podeEditar ? '' : 'disabled') +
+        ' onclick="pipeAbrirModal(\'' + nomeFull.replace(/'/g, "\\'") + '\', \'' + (linha.broker_nome || param.broker || '') + '\', ' + (linha.id || 'null') + ')">' +
+        (trancada ? 'Ver' : 'Preencher') + '</button></td>';
+      tbody.appendChild(tr);
+    });
+
+    // Linhas salvas de assessores que não estão mais na param (edge case)
+    pipeState.linhas.forEach(function (l) {
+      var jaRenderizado = assessores.some(function (p) {
+        return (p.assessor || p.nome_assessor || '') === l.assessor_nome;
+      });
+      if (jaRenderizado) return;
+
+      var totLinha = (l.corretagem || 0) + (l.coe || 0) + (l.estruturados || 0);
+      var tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td class="pipe-td-assessor">' + l.assessor_nome + '</td>' +
+        '<td class="pipe-td-broker">' + (l.broker_nome || '') + '</td>' +
+        '<td>' + fmtBRL(l.corretagem || 0) + '</td>' +
+        '<td>' + fmtBRL(l.coe || 0) + '</td>' +
+        '<td>' + fmtBRL(l.estruturados || 0) + '</td>' +
+        '<td class="pipe-td-total">' + fmtBRL(totLinha) + '</td>' +
+        '<td><button class="pipe-btn-edit" disabled>Ver</button></td>';
+      tbody.appendChild(tr);
+    });
+  }
+
+  /* ── histórico ── */
+  window.pipeToggleHistorico = function () {
+    pipeState.historicoAberto = !pipeState.historicoAberto;
+    var panel = el('pipe-historico-panel');
+    if (!panel) return;
+    if (pipeState.historicoAberto) {
+      panel.style.display = 'block';
+      pipeRenderHistorico();
+    } else {
+      panel.style.display = 'none';
+    }
+  };
+
+  function pipeRenderHistorico() {
+    var lista = el('pipe-historico-lista');
+    if (!lista) return;
+    var sessoes = pipeState.sessoes;
+    if (!sessoes || sessoes.length === 0) {
+      lista.innerHTML = '<div class="pipe-empty-hint">Nenhuma sessão encontrada.</div>';
+      return;
+    }
+    lista.innerHTML = '';
+    // Ordena por data_inicio desc
+    var sorted = sessoes.slice().sort(function (a, b) {
+      return (b.data_inicio || '').localeCompare(a.data_inicio || '');
+    });
+    sorted.forEach(function (s) {
+      var ativa = pipeState.sessaoAtual && pipeState.sessaoAtual.id === s.id;
+      var totLinha = 0;
+      // calcular total apenas se for a sessão ativa (linhas carregadas)
+      if (ativa) {
+        pipeState.linhas.forEach(function (l) {
+          totLinha += (l.corretagem || 0) + (l.coe || 0) + (l.estruturados || 0);
+        });
+      } else {
+        totLinha = s.total_cache || 0;
+      }
+
+      var div = document.createElement('div');
+      div.className = 'pipe-historico-item' + (ativa ? ' ativa' : '');
+      div.onclick = function () { pipeCarregarSessao(s.id); };
+      div.innerHTML =
+        '<div class="phi-left">' +
+        '<span class="phi-semana">' + semanaLabel(s.data_inicio) + '</span>' +
+        '<span class="phi-meta">Aberta por ' + (s.criado_por || '—') + ' · ' + formatarData(s.data_inicio) + '</span>' +
+        '</div>' +
+        '<div class="phi-right">' +
+        (totLinha > 0 ? '<span class="phi-total">' + fmtBRL(totLinha) + '</span>' : '') +
+        '<span class="phi-badge ' + (s.status || 'aberta') + '">' + (s.status || 'ABERTA').toUpperCase() + '</span>' +
+        '</div>';
+      lista.appendChild(div);
+    });
+  }
+
+  /* ── carregar sessão específica do histórico ── */
+  window.pipeCarregarSessao = async function (sessaoId) {
+    var token = getToken();
+    if (!token) { toast('Faça login primeiro.', false); return; }
+    try {
+      var res = await fetch(API_BASE_PIPE + '/api/pipe/sessao/' + sessaoId + '/linhas', {
+        headers: authHeaders()
+      });
+      if (res.ok) {
+        var linhas = await res.json();
+        // Busca sessao do cache
+        var sessao = pipeState.sessoes.find(function (s) { return s.id === sessaoId; }) || null;
+        pipeState.sessaoAtual = sessao;
+        pipeState.linhas = linhas || [];
+        pipeRenderSessao();
+        // fecha historico
+        pipeState.historicoAberto = false;
+        var panel = el('pipe-historico-panel');
+        if (panel) panel.style.display = 'none';
+      } else {
+        toast('Erro ao carregar sessão.', false);
+      }
+    } catch (e) {
+      toast('Sem conexão com o servidor.', false);
+    }
+  };
+
+  /* ── abrir nova sessão ── */
+  window.pipeAbrirSessao = async function () {
+    var user = getUser();
+    if (!user || (user.nivel || 1) < 2) { toast('Apenas Líderes podem abrir sessões.', false); return; }
+    var token = getToken();
+    if (!token) { toast('Faça login primeiro.', false); return; }
+
+    // Verifica se já existe sessão aberta esta semana
+    var jaAberta = pipeState.sessoes.some(function (s) { return s.status === 'aberta'; });
+    if (jaAberta) {
+      toast('Já existe uma sessão aberta esta semana.', false);
+      return;
+    }
+
+    try {
+      var res = await fetch(API_BASE_PIPE + '/api/pipe/sessao', {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ criado_por: user.full_name || user.name || 'Líder' })
+      });
+      if (res.ok) {
+        var nova = await res.json();
+        pipeState.sessoes.unshift(nova);
+        pipeState.sessaoAtual = nova;
+        pipeState.linhas = [];
+        pipeRenderSessao();
+        toast('Sessão aberta com sucesso!', true);
+      } else {
+        var d = await res.json().catch(function () { return {}; });
+        toast(d.detail || 'Erro ao abrir sessão.', false);
+      }
+    } catch (e) {
+      toast('Sem conexão com o servidor.', false);
+    }
+  };
+
+  /* ── trancar sessão ── */
+  window.pipeTrancarSessao = async function () {
+    var sessao = pipeState.sessaoAtual;
+    if (!sessao || sessao.status !== 'aberta') { toast('Nenhuma sessão aberta para trancar.', false); return; }
+    var user = getUser();
+    if (!user || (user.nivel || 1) < 2) { toast('Apenas Líderes podem trancar sessões.', false); return; }
+
+    if (!confirm('Tem certeza que deseja trancar a sessão? Após trancada, ninguém poderá editar os valores.')) return;
+
+    try {
+      var res = await fetch(API_BASE_PIPE + '/api/pipe/sessao/' + sessao.id + '/trancar', {
+        method: 'PATCH',
+        headers: authHeaders()
+      });
+      if (res.ok) {
+        sessao.status = 'trancada';
+        pipeState.sessaoAtual = sessao;
+        // Atualiza no array de sessões
+        pipeState.sessoes.forEach(function (s) {
+          if (s.id === sessao.id) s.status = 'trancada';
+        });
+        pipeRenderSessao();
+        toast('Sessão trancada com sucesso!', true);
+      } else {
+        var d = await res.json().catch(function () { return {}; });
+        toast(d.detail || 'Erro ao trancar sessão.', false);
+      }
+    } catch (e) {
+      toast('Sem conexão com o servidor.', false);
+    }
+  };
+
+  /* ── modal de edição de linha ── */
+  window.pipeAbrirModal = function (assessorNome, brokerNome, linhaId) {
+    pipeState.editandoLinhaId = linhaId;
+
+    var tituloEl = el('pipe-modal-titulo');
+    var labelEl = el('pipe-modal-assessor-label');
+    if (tituloEl) tituloEl.textContent = 'Preencher expectativa';
+    if (labelEl) labelEl.textContent = assessorNome + (brokerNome ? ' · Broker: ' + brokerNome : '');
+
+    // Pré-preenche valores existentes
+    var linha = pipeState.linhas.find(function (l) { return l.id === linhaId; }) || null;
+    // Também tenta pelo nome (para linhas ainda sem ID)
+    if (!linha) {
+      linha = pipeState.linhas.find(function (l) { return l.assessor_nome === assessorNome; }) || null;
+    }
+    function setInp(id, val) {
+      var inp = el(id);
+      if (!inp) return;
+      if (val && val > 0) {
+        inp.value = fmtBRL(val);
+      } else {
+        inp.value = '';
+      }
+    }
+    setInp('pipe-inp-corretagem', linha ? linha.corretagem : 0);
+    setInp('pipe-inp-coe', linha ? linha.coe : 0);
+    setInp('pipe-inp-estruturados', linha ? linha.estruturados : 0);
+
+    // Guarda assessor/broker no modal para usar no save
+    var modal = el('pipe-modal');
+    if (modal) {
+      modal.dataset.assessorNome = assessorNome;
+      modal.dataset.brokerNome = brokerNome;
+    }
+
+    pipeAtualizarModalTotal();
+
+    var overlay = el('pipe-modal-overlay');
+    if (overlay) overlay.style.display = 'flex';
+
+    // Foca no primeiro campo
+    setTimeout(function () {
+      var inp = el('pipe-inp-corretagem');
+      if (inp) inp.focus();
+    }, 80);
+  };
+
+  window.pipeFecharModal = function (e) {
+    if (e && e.target !== el('pipe-modal-overlay')) return;
+    var overlay = el('pipe-modal-overlay');
+    if (overlay) overlay.style.display = 'none';
+    pipeState.editandoLinhaId = null;
+  };
+
+  /* ── salvar linha ── */
+  window.pipeSalvarLinha = async function () {
+    var sessao = pipeState.sessaoAtual;
+    if (!sessao) { toast('Nenhuma sessão ativa.', false); return; }
+    if (sessao.status === 'trancada') { toast('Sessão trancada. Não é possível editar.', false); return; }
+
+    var modal = el('pipe-modal');
+    var assessorNome = modal ? modal.dataset.assessorNome : '';
+    var brokerNome = modal ? modal.dataset.brokerNome : '';
+
+    var corretagem = parseBRL(el('pipe-inp-corretagem') ? el('pipe-inp-corretagem').value : '');
+    var coe = parseBRL(el('pipe-inp-coe') ? el('pipe-inp-coe').value : '');
+    var estruturados = parseBRL(el('pipe-inp-estruturados') ? el('pipe-inp-estruturados').value : '');
+
+    var payload = {
+      sessao_id: sessao.id,
+      assessor_nome: assessorNome,
+      broker_nome: brokerNome,
+      corretagem: corretagem,
+      coe: coe,
+      estruturados: estruturados
+    };
+
+    try {
+      var res = await fetch(API_BASE_PIPE + '/api/pipe/linha', {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        var salva = await res.json();
+        // Atualiza no array de linhas
+        var idx = pipeState.linhas.findIndex(function (l) { return l.assessor_nome === assessorNome; });
+        if (idx >= 0) {
+          pipeState.linhas[idx] = salva;
+        } else {
+          pipeState.linhas.push(salva);
+        }
+        // Fecha modal
+        var overlay = el('pipe-modal-overlay');
+        if (overlay) overlay.style.display = 'none';
+        pipeState.editandoLinhaId = null;
+        // Re-renderiza
+        pipeRenderLinhas();
+        pipeRenderTotais();
+        toast('Salvo com sucesso!', true);
+      } else {
+        var d = await res.json().catch(function () { return {}; });
+        toast(d.detail || 'Erro ao salvar.', false);
+      }
+    } catch (e) {
+      toast('Sem conexão com o servidor.', false);
+    }
+  };
+
+  /* ── carregamento inicial ── */
+  async function pipeCarregarDados() {
+    var token = getToken();
+    if (!token) return;
+    try {
+      // 1. Busca todas as sessões
+      var res = await fetch(API_BASE_PIPE + '/api/pipe/sessoes', {
+        headers: authHeaders()
+      });
+      if (res.ok) {
+        var sessoes = await res.json();
+        pipeState.sessoes = sessoes || [];
+
+        // 2. Determina sessão a mostrar: a mais recente ABERTA, ou a mais recente geral
+        var abertas = pipeState.sessoes.filter(function (s) { return s.status === 'aberta'; });
+        var alvo = abertas.length > 0
+          ? abertas.sort(function (a, b) { return (b.data_inicio || '').localeCompare(a.data_inicio || ''); })[0]
+          : (pipeState.sessoes.length > 0
+            ? pipeState.sessoes.sort(function (a, b) { return (b.data_inicio || '').localeCompare(a.data_inicio || ''); })[0]
+            : null);
+
+        pipeState.sessaoAtual = alvo;
+
+        // 3. Se tem sessão, carrega linhas
+        if (alvo) {
+          var resL = await fetch(API_BASE_PIPE + '/api/pipe/sessao/' + alvo.id + '/linhas', {
+            headers: authHeaders()
+          });
+          if (resL.ok) {
+            pipeState.linhas = await resL.json() || [];
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Pipe: erro ao carregar dados', e);
+    }
+    pipeRenderSessao();
+  }
+
+  /* ── init (chamado pelo shared.js via goTo('pipe')) ── */
+  window.initPipe = function () {
+    pipeState = { sessoes: [], sessaoAtual: null, linhas: [], editandoLinhaId: null, historicoAberto: false };
+    pipeRenderHeader();
+    pipeAtualizarBotoes();
+    pipeCarregarDados();
+  };
+
+})();
