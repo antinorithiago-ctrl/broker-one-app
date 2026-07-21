@@ -73,23 +73,24 @@ function goTo(page) {
 
 // Chamada após cada page ser carregada — inicializa o módulo correto
 function onPageLoaded(page) {
-  if (page === 'home') {
-    // Saudação personalizada
-    var nome = currentUser ? (currentUser.name || currentUser.username || '').split(' ')[0] : '';
-    var h = new Date().getHours();
-    var greeting = h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite';
-    var el = document.getElementById('home-greeting');
-    if (el) el.textContent = greeting + (nome ? ', ' + nome : '') + ' 👋';
-    var datEl = document.getElementById('home-date');
-    if (datEl) datEl.textContent = new Date().toLocaleDateString('pt-BR', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
-    return;
-  }
-  if (page === 'flow')           { typeof loadFlow !== 'undefined' && loadFlow(); }
-  else if (page === 'pilott')    { typeof pilottLoad !== 'undefined' && pilottLoad(); typeof initUrgency !== 'undefined' && initUrgency(); }
-  else if (page === 'pipe')      { typeof loadPipe !== 'undefined' && loadPipe(); }
-  else if (page === 'parametrizacao') { typeof window.renderParam !== 'undefined' && window.renderParam(); }
-  else if (page === 'metas')     { typeof window.loadMetas !== 'undefined' && window.loadMetas(); }
-  typeof setDates !== 'undefined' && setDates(page);
+  // Usar setTimeout para garantir que o DOM da page foi renderizado antes de inicializar
+  setTimeout(function() {
+    if (page === 'home') {
+      var nome = currentUser ? (currentUser.name || currentUser.username || '').split(' ')[0] : '';
+      var h = new Date().getHours();
+      var greeting = h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite';
+      var el = document.getElementById('home-greeting');
+      if (el) el.textContent = greeting + (nome ? ', ' + nome : '') + ' 👋';
+      var datEl = document.getElementById('home-date');
+      if (datEl) datEl.textContent = new Date().toLocaleDateString('pt-BR', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+    }
+    else if (page === 'flow')           { typeof loadFlow !== 'undefined' && loadFlow(); }
+    else if (page === 'pilott')         { typeof pilottLoad !== 'undefined' && pilottLoad(); typeof initUrgency !== 'undefined' && initUrgency(); }
+    else if (page === 'pipe')           { typeof loadPipe !== 'undefined' && loadPipe(); }
+    else if (page === 'parametrizacao') { typeof window.renderParam !== 'undefined' && window.renderParam(); }
+    else if (page === 'metas')          { typeof window.loadMetas !== 'undefined' && window.loadMetas(); }
+    typeof setDates !== 'undefined' && setDates(page);
+  }, 50);
 }
 
 document.addEventListener('keydown',function(e){
