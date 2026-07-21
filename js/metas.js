@@ -1,86 +1,360 @@
-// Broker ONE — METAS
-// ─────────────────────────────────────
+// ─── METAS MODULE ────────────────────────────────────────────────────────────
+(function () {
+  'use strict';
 
-// ═══════════════════════════════════════════
-//  METAS MODULE
-// ═══════════════════════════════════════════
-(function(){
-  var KEY='brokerone_metas';
-  var metasData=[];
-  var editingMetaId=null;
-  var MESES=['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const API = window.BROKER_API || 'https://broker-one-backend-production-90c9.up.railway.app';
 
-  function load(){try{metasData=JSON.parse(localStorage.getItem(KEY)||'[]');}catch(e){metasData=[];}}
-  function save(){localStorage.setItem(KEY,JSON.stringify(metasData));}
+  // Estado da sessão de lançamento
+  let _sessao = null; // { semestre, mes, assessores: [{nome, meta}] }
+  let _metasList = []; // metas salvas no backend
 
-  window.renderMetas=function(){
-    var tbody=document.getElementById('metas-tbody');if(!tbody)return;tbody.innerHTML='';
-    var sorted=metasData.slice().sort(function(a,b){var ka=(a.assessor||'')+a.semestre+a.mes;var kb=(b.assessor||'')+b.semestre+b.mes;return ka<kb?-1:1;});
-    if(!sorted.length){
-      var tr=document.createElement('tr');
-      tr.innerHTML='<td colspan="5" style="text-align:center;padding:40px;color:var(--text-muted);">Nenhuma meta cadastrada. Clique em <strong>Nova Meta</strong>.</td>';
-      tbody.appendChild(tr);return;
+  // ─── INIT ──────────────────────────────────────────────────────────────────
+  window.loadMetas = async function () {
+    await fetchMetas();
+    renderMetasTable();
+    bindMetasEvents();
+  };
+
+  // ─── FETCH METAS ───────────────────────────────────────────────────────────
+  async function fetchMetas() {
+    const tok = localStorage.getItem('brkToken');
+    try {
+      const r = await fetch(`${API}/api/metas/`, {
+        headers: { Authorization: `Bearer ${tok}` }
+      });
+      if (r.ok) _metasList = await r.json();
+    } catch (e) {
+      console.warn('Metas: erro ao buscar', e);
     }
-    var assAtual=null;
-    sorted.forEach(function(m){
-      if((m.assessor||'')!==assAtual){
-        assAtual=m.assessor||'';
-        var sh=document.createElement('tr');sh.className='group-row';
-        sh.innerHTML='<td colspan="5">'+assAtual+'</td>';
-        tbody.appendChild(sh);
+  }
+
+  // ─── TABELA PRINCIPAL ──────────────────────────────────────────────────────
+  function renderMetasTable() {
+    const tbody = document.getElementById('metas-tbody');
+    if (!tbody) return;
+    if (_metasList.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:40px">Nenhuma meta cadastrada ainda.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = _metasList.map(m => `
+      <tr>
+        <td>${escHtml(m.assessor)}</td>
+        <td><span class="chip-smt">${escHtml(m.semestre || '')}</span></td>
+        <td>${escHtml(m.mes || '')}</td>
+        <td class="td-meta">${fmtBRL(m.meta_rv || m.valor_meta || 0)}</td>
+      </tr>
+    `).join('');
+  }
+
+  // ─── BIND EVENTS ──────────────────────────────────────────────────────────
+  function bindMetasEvents() {
+    const btnNova = document.getElementById('metas-nova-btn');
+    if (btnNova) btnNova.addEventListener('click', abrirModalSessao);
+
+    const btnImport = document.getElementById('metas-import-btn');
+    if (btnImport) btnImport.addEventListener('click', () => document.getElementById('metas-csv-input').click());
+
+    const csvInput = document.getElementById('metas-csv-input');
+    if (csvInput) csvInput.addEventListener('change', handleCsvImport);
+
+    // overlay fecha ao clicar fora
+    const overlay = document.getElementById('meta-sessao-overlay');
+    if (overlay) overlay.addEventListener('click', function (e) { if (e.target === this) fecharModalSessao(); });
+
+    const overlayLanc = document.getElementById('meta-lanc-overlay');
+    if (overlayLanc) overlayLanc.addEventListener('click', function (e) { if (e.target === this) fecharModalLanc(); });
+  }
+
+  // ─── MODAL SESSÃO (passo 1: escolher mês/semestre) ────────────────────────
+  function abrirModalSessao() {
+    const now = new Date();
+    // preencher defaults
+    const selMes = document.getElementById('sess-mes');
+    const selSem = document.getElementById('sess-sem');
+    const selAno = document.getElementById('sess-ano');
+    if (selMes) selMes.value = String(now.getMonth() + 1).padStart(2, '0');
+    if (selAno) selAno.value = now.getFullYear();
+    const m = now.getMonth() + 1;
+    if (selSem) selSem.value = m <= 6 ? '1' : '2';
+    const ov = document.getElementById('meta-sessao-overlay');
+    if (ov) { ov.style.display = 'flex'; }
+  }
+
+  window.fecharModalSessao = function () {
+    const ov = document.getElementById('meta-sessao-overlay');
+    if (ov) ov.style.display = 'none';
+  };
+
+  window.confirmarSessao = async function () {
+    const ano = document.getElementById('sess-ano').value;
+    const mes = document.getElementById('sess-mes').value;
+    const sem = document.getElementById('sess-sem').value;
+
+    if (!ano || !mes || !sem) return;
+
+    const semStr = `${ano}-S${sem}`;
+    const mesStr = `${ano}-${mes}`;
+
+    // Pegar assessores da Parametrização
+    const paramData = window.getParamData ? window.getParamData() : [];
+    const user = window.currentUser || JSON.parse(localStorage.getItem('brkUser') || '{}');
+
+    let assessores = paramData;
+    // Broker (nível 1) vê só seus assessores
+    if (user.nivel === 1) {
+      assessores = paramData.filter(p => p.broker === user.username || p.broker_nome === user.name);
+    }
+
+    if (assessores.length === 0) {
+      alert('Nenhum assessor encontrado. Configure a Parametrização primeiro.');
+      return;
+    }
+
+    // Buscar metas existentes pra pré-preencher
+    const existentes = {};
+    _metasList.forEach(m => {
+      if (m.semestre === semStr && m.mes === mesStr) {
+        existentes[m.assessor] = m.meta_rv || m.valor_meta || 0;
       }
-      var tr=document.createElement('tr');tr.style.cursor='pointer';
-      tr.addEventListener('click',function(){openMetaModal(m.id);});
-      tr.innerHTML=
-        '<td style="color:var(--text-muted);font-size:11px;">'+m.semestre+'</td>'+
-        '<td style="font-weight:600;">'+MESES[parseInt(m.mes,10)]+'</td>'+
-        '<td class="r" style="font-size:15px;font-weight:700;color:var(--teal-dark);">'+fmtCurrencyFull(m.valor)+'</td>'+
-        '<td><button class="btn btn-ghost" style="padding:4px 8px;font-size:11px;" class="edit-meta-btn">Editar</button></td>';
-      tbody.appendChild(tr);
     });
+
+    _sessao = {
+      semestre: semStr,
+      mes: mesStr,
+      assessores: assessores.map(p => ({
+        nome: p.nome || p.name || p.assessor || '',
+        meta: existentes[p.nome || p.name || p.assessor || ''] || 0
+      }))
+    };
+
+    fecharModalSessao();
+    abrirModalLancamento();
   };
 
-  window.openMetaModal=function(id){
-    editingMetaId=id||null;var m=id?metasData.find(function(x){return x.id===id;}):null;
-    document.getElementById('meta-modal-title').textContent=m?'Editar Meta':'Nova Meta';
-    document.getElementById('meta-delete-btn').style.display=m?'inline-flex':'none';
+  // ─── MODAL LANÇAMENTO (passo 2: grade com todos assessores) ───────────────
+  function abrirModalLancamento() {
+    if (!_sessao) return;
 
-    // Populate assessors from Parametrização
-    var paramRaw=localStorage.getItem('brokerone_param');
-    var paramList=[];try{paramList=JSON.parse(paramRaw||'[]');}catch(e){}
-    var assessores=[...new Set(paramList.map(function(r){return r.assessor;}).filter(Boolean))].sort();
-    var sel=document.getElementById('m-assessor');
-    sel.innerHTML='<option value="">Selecione...</option>';
-    assessores.forEach(function(a){var o=document.createElement('option');o.value=a;o.textContent=a;sel.appendChild(o);});
-    var hint=document.getElementById('m-assessor-hint');
-    if(assessores.length===0){hint.style.display='block';sel.disabled=true;}
-    else{hint.style.display='none';sel.disabled=false;}
+    const title = document.getElementById('meta-lanc-title');
+    if (title) title.textContent = `Metas RV — ${labelMes(_sessao.mes)} / ${_sessao.semestre}`;
 
-    document.getElementById('m-assessor').value=m?(m.assessor||''):'';
-    document.getElementById('m-semestre').value=m?(m.semestre||''):'';
-    document.getElementById('m-mes').value=m?(m.mes||''):'';
-    document.getElementById('m-valor').value=m?(m.valor||''):'';
-    document.getElementById('meta-overlay').classList.add('open');
+    renderGradeAssessores();
+    const ov = document.getElementById('meta-lanc-overlay');
+    if (ov) { ov.style.display = 'flex'; setTimeout(() => ov.querySelector('.meta-lanc-modal').classList.add('open'), 10); }
+  }
+
+  function renderGradeAssessores() {
+    const tbody = document.getElementById('meta-lanc-tbody');
+    if (!tbody || !_sessao) return;
+
+    tbody.innerHTML = _sessao.assessores.map((a, i) => `
+      <tr>
+        <td class="td-aai">${escHtml(a.nome)}</td>
+        <td>
+          <input type="text"
+            class="meta-val-inp"
+            id="meta-inp-${i}"
+            value="${a.meta ? fmtBRL(a.meta) : ''}"
+            placeholder="R$ 0,00"
+            oninput="maskMetaInp(this)"
+            onblur="parseMetaInp(${i}, this)"
+          />
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  window.fecharModalLanc = function () {
+    const ov = document.getElementById('meta-lanc-overlay');
+    if (ov) { ov.querySelector('.meta-lanc-modal').classList.remove('open'); setTimeout(() => { ov.style.display = 'none'; }, 200); }
+    _sessao = null;
   };
-  window.closeMetaModal=function(){document.getElementById('meta-overlay').classList.remove('open');editingMetaId=null;};
-  window.saveMeta=function(){
-    var assessor=document.getElementById('m-assessor').value;
-    var sem=document.getElementById('m-semestre').value;
-    var mes=document.getElementById('m-mes').value;
-    var val=parseFloat(document.getElementById('m-valor').value)||0;
-    if(!assessor){toast('Selecione o assessor','error');return;}
-    if(!sem){toast('Selecione o semestre','error');return;}
-    if(!mes){toast('Selecione o mês','error');return;}
-    if(!val){toast('Informe o valor da meta','error');return;}
-    var now=new Date().toISOString();
-    var data={assessor:assessor,semestre:sem,mes:mes,valor:val};
-    if(editingMetaId){var m=metasData.find(function(x){return x.id===editingMetaId;});if(m)Object.assign(m,data,{updatedAt:now});toast('Meta atualizada');}
-    else{data.id=uid();data.createdAt=now;data.updatedAt=now;metasData.push(data);toast('Meta cadastrada');}
-    save();closeMetaModal();renderMetas();
-  };
-  window.deleteMeta=function(){if(!editingMetaId)return;if(!confirm('Excluir esta meta?'))return;metasData=metasData.filter(function(x){return x.id!==editingMetaId;});save();closeMetaModal();renderMetas();toast('Meta excluída');};
 
-  var _mo=document.getElementById('meta-overlay');if(_mo)_mo.addEventListener('click',function(e){if(e.target===this)closeMetaModal();});
-  load();
+  // ─── INPUT MASK ───────────────────────────────────────────────────────────
+  window.maskMetaInp = function (el) {
+    let v = el.value.replace(/\D/g, '');
+    if (!v) { el.value = ''; return; }
+    let n = parseInt(v, 10) / 100;
+    el.value = 'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
+  window.parseMetaInp = function (i, el) {
+    if (!_sessao || !_sessao.assessores[i]) return;
+    const raw = el.value.replace(/[^\d,]/g, '').replace(',', '.');
+    _sessao.assessores[i].meta = parseFloat(raw) || 0;
+  };
+
+  // ─── SALVAR SESSÃO ────────────────────────────────────────────────────────
+  window.salvarSessaoMetas = async function () {
+    if (!_sessao) return;
+
+    // Garantir que todos os valores estejam parseados antes de salvar
+    _sessao.assessores.forEach((a, i) => {
+      const inp = document.getElementById(`meta-inp-${i}`);
+      if (inp) {
+        const raw = inp.value.replace(/[^\d,]/g, '').replace(',', '.');
+        a.meta = parseFloat(raw) || 0;
+      }
+    });
+
+    const tok = localStorage.getItem('brkToken');
+    const btn = document.getElementById('meta-lanc-salvar');
+    if (btn) { btn.disabled = true; btn.textContent = 'Salvando…'; }
+
+    let ok = 0, err = 0;
+
+    for (const a of _sessao.assessores) {
+      if (!a.nome) continue;
+      // Verificar se já existe
+      const exist = _metasList.find(m =>
+        m.assessor === a.nome &&
+        m.semestre === _sessao.semestre &&
+        m.mes === _sessao.mes
+      );
+
+      try {
+        let resp;
+        if (exist) {
+          resp = await fetch(`${API}/api/metas/${exist.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` },
+            body: JSON.stringify({ meta_rv: a.meta, valor_meta: a.meta })
+          });
+        } else {
+          resp = await fetch(`${API}/api/metas/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` },
+            body: JSON.stringify({
+              assessor: a.nome,
+              semestre: _sessao.semestre,
+              mes: _sessao.mes,
+              meta_rv: a.meta,
+              valor_meta: a.meta
+            })
+          });
+        }
+        if (resp.ok) ok++; else err++;
+      } catch (e) {
+        err++;
+      }
+    }
+
+    if (btn) { btn.disabled = false; btn.textContent = 'Salvar'; }
+
+    const msg = document.getElementById('meta-lanc-msg');
+    if (msg) {
+      msg.textContent = err === 0
+        ? `✓ ${ok} metas salvas com sucesso!`
+        : `${ok} salvas, ${err} com erro.`;
+      msg.className = err === 0 ? 'lanc-msg ok' : 'lanc-msg err';
+      msg.style.display = 'block';
+    }
+
+    await fetchMetas();
+    renderMetasTable();
+
+    if (err === 0) setTimeout(fecharModalLanc, 1400);
+  };
+
+  // ─── IMPORTAÇÃO CSV ───────────────────────────────────────────────────────
+  // Formato esperado: assessor,semestre,mes,meta_rv
+  // Ex: "João Silva",2025-S1,2025-07,50000
+  async function handleCsvImport(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    e.target.value = '';
+
+    const text = await file.text();
+    const lines = text.trim().split('\n');
+    const header = lines[0].toLowerCase();
+    const hasHeader = header.includes('assessor') || header.includes('meta');
+    const dataLines = hasHeader ? lines.slice(1) : lines;
+
+    const tok = localStorage.getItem('brkToken');
+    let ok = 0, err = 0, skip = 0;
+    const statusEl = document.getElementById('metas-import-status');
+    if (statusEl) { statusEl.textContent = 'Importando…'; statusEl.style.display = 'inline'; }
+
+    for (const line of dataLines) {
+      if (!line.trim()) continue;
+
+      // Suporta aspas e vírgula/ponto-e-vírgula como separador
+      const cols = parseCsvLine(line);
+      if (cols.length < 4) { skip++; continue; }
+
+      const [assessor, semestre, mes, metaRaw] = cols.map(c => c.trim().replace(/^"|"$/g, ''));
+      const meta_rv = parseFloat(metaRaw.replace(',', '.')) || 0;
+
+      if (!assessor || !semestre || !mes) { skip++; continue; }
+
+      // Verificar se já existe
+      const exist = _metasList.find(m =>
+        m.assessor === assessor && m.semestre === semestre && m.mes === mes
+      );
+
+      try {
+        let resp;
+        if (exist) {
+          resp = await fetch(`${API}/api/metas/${exist.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` },
+            body: JSON.stringify({ meta_rv, valor_meta: meta_rv })
+          });
+        } else {
+          resp = await fetch(`${API}/api/metas/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` },
+            body: JSON.stringify({ assessor, semestre, mes, meta_rv, valor_meta: meta_rv })
+          });
+        }
+        if (resp.ok) ok++; else err++;
+      } catch (ex) {
+        err++;
+      }
+    }
+
+    if (statusEl) {
+      statusEl.textContent = `✓ ${ok} importadas${err ? `, ${err} erros` : ''}${skip ? `, ${skip} ignoradas` : ''}`;
+      statusEl.className = err > 0 ? 'import-status err' : 'import-status ok';
+      setTimeout(() => { statusEl.style.display = 'none'; }, 4000);
+    }
+
+    await fetchMetas();
+    renderMetasTable();
+  }
+
+  function parseCsvLine(line) {
+    // Suporta vírgula e ponto-e-vírgula, e campos entre aspas
+    const sep = line.includes(';') ? ';' : ',';
+    const result = [];
+    let cur = '', inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (c === '"') { inQ = !inQ; }
+      else if (c === sep && !inQ) { result.push(cur); cur = ''; }
+      else { cur += c; }
+    }
+    result.push(cur);
+    return result;
+  }
+
+  // ─── HELPERS ──────────────────────────────────────────────────────────────
+  function fmtBRL(v) {
+    return 'R$ ' + Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function labelMes(mesStr) {
+    // mesStr = "2025-07"
+    if (!mesStr) return mesStr;
+    const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    const parts = mesStr.split('-');
+    if (parts.length < 2) return mesStr;
+    const idx = parseInt(parts[1], 10) - 1;
+    return `${meses[idx] || parts[1]}/${parts[0]}`;
+  }
+
+  function escHtml(str) {
+    return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
 })();
-
