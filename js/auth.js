@@ -188,28 +188,163 @@ function populateAaiSelect() {
 }
 
 
-function applySidebarUser(u){
-  if(!u)return;
-  var nome=u.full_name||u.name||u.username||'Usuário';
-  var initials=nome.split(' ').map(function(p){return p[0]||'';}).slice(0,2).join('').toUpperCase();
-  var av=document.getElementById('sidebar-avatar');
-  var sn=document.getElementById('sidebar-user-name');
-  var sr=document.getElementById('sidebar-user-role');
-  var ab=document.getElementById('sidebar-admin-btn');
-  if(av)av.textContent=initials;
-  if(sn)sn.textContent=nome;
-  if(sr)sr.textContent=u.nivel_label||'Broker';
-  if(ab)ab.style.display=(u.nivel>=5)?'flex':'none';
+function applySidebarUser(u) {
+  if (!u) return;
+  var nome = u.full_name || u.name || u.username || 'Usuário';
+  var initials = nome.split(' ').map(function(p){ return p[0]||''; }).slice(0,2).join('').toUpperCase();
+  var nivelLabels = {1:'Broker',2:'Assessor',3:'Analista',4:'Líder de Squad',5:'Admin'};
 
-  // Controle de visibilidade da seção Cadastros (só nível >= 4 vê)
-  var showCadastros=u.nivel>=4;
-  var sec=document.getElementById('nav-section-cadastros');
-  var nc=document.getElementById('nav-clientes');
-  var nm=document.getElementById('nav-metas');
-  var np=document.getElementById('nav-parametrizacao');
-  var disp=showCadastros?'flex':'none';
-  if(sec)sec.style.display=showCadastros?'block':'none';
-  if(nc)nc.style.display=disp;
-  if(nm)nm.style.display=disp;
-  if(np)np.style.display=disp;
+  var av      = document.getElementById('sidebar-avatar');
+  var avImg   = document.getElementById('sidebar-avatar-img');
+  var avInit  = document.getElementById('sidebar-avatar-initials');
+  var sn      = document.getElementById('sidebar-user-name');
+  var sr      = document.getElementById('sidebar-user-role');
+  var ab      = document.getElementById('sidebar-admin-btn');
+
+  if (avInit) avInit.textContent = initials;
+  if (sn) sn.textContent = nome;
+  if (sr) sr.textContent = nivelLabels[u.nivel] || ('Nível ' + (u.nivel||''));
+
+  // Atualizar initials no painel também
+  var upInit = document.getElementById('up-avatar-initials');
+  if (upInit) upInit.textContent = initials;
+
+  // Carregar foto salva
+  var key = 'bo_avatar_' + (u.id || u.username || 'user');
+  var saved = localStorage.getItem(key);
+  if (saved && avImg) {
+    avImg.src = saved; avImg.style.display = 'block';
+    if (av) av.style.background = 'transparent';
+    if (avInit) avInit.style.display = 'none';
+  } else if (avImg) {
+    avImg.style.display = 'none';
+    if (avInit) avInit.style.display = '';
+    if (av) av.style.background = '';
+  }
+
+  // Mostrar "Gerenciar Usuários" só para Admin (nível 5)
+  if (ab) ab.style.display = (u.nivel >= 5) ? 'flex' : 'none';
+
+  // Esconder seção Cadastros para nível 1
+  var secCad = document.getElementById('nav-section-cadastros');
+  var cadastrosItems = ['nav-clientes','nav-metas','nav-parametrizacao','sidebar-admin-btn'];
+  if (u.nivel < 2) {
+    if (secCad) secCad.style.display = 'none';
+    cadastrosItems.forEach(function(id){
+      var el = document.getElementById(id); if (el) el.style.display = 'none';
+    });
+  }
+}
+
+// ══ PAINEL DO USUÁRIO ════════════════════════════════════════════════════
+
+var AVATAR_KEY = 'bo_avatar_' + (currentUser ? currentUser.id || currentUser.username : 'user');
+
+function openUserPanel() {
+  var overlay = document.getElementById('user-panel-overlay');
+  if (!overlay) return;
+  overlay.classList.add('open');
+
+  // Preencher campos com dados do currentUser
+  var u = currentUser || {};
+  var nome = u.name || u.full_name || u.username || '';
+  var nivelLabels = {1:'Broker',2:'Assessor',3:'Analista',4:'Líder de Squad',5:'Admin'};
+
+  var fName   = document.getElementById('up-name');
+  var fEmail  = document.getElementById('up-email');
+  var fNivel  = document.getElementById('up-nivel');
+  var msgEl   = document.getElementById('up-msg');
+
+  if (fName)  fName.value  = nome;
+  if (fEmail) fEmail.value = u.email || '';
+  if (fNivel) fNivel.value = nivelLabels[u.nivel] || ('Nível ' + (u.nivel||''));
+  if (msgEl)  { msgEl.style.display='none'; msgEl.textContent=''; }
+
+  // Limpar campos de senha
+  ['up-pwd-atual','up-pwd-nova','up-pwd-confirm'].forEach(function(id){
+    var el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+
+  // Carregar avatar salvo
+  loadAvatarInPanel();
+}
+
+function closeUserPanel() {
+  var overlay = document.getElementById('user-panel-overlay');
+  if (overlay) overlay.classList.remove('open');
+}
+
+function loadAvatarInPanel() {
+  var key = 'bo_avatar_' + ((currentUser||{}).id || (currentUser||{}).username || 'user');
+  var saved = localStorage.getItem(key);
+  var img = document.getElementById('up-avatar-img');
+  var initials = document.getElementById('up-avatar-initials');
+  if (saved && img) {
+    img.src = saved;
+    img.style.display = 'block';
+    if (initials) initials.style.display = 'none';
+  } else if (img) {
+    img.style.display = 'none';
+    if (initials) initials.style.display = '';
+  }
+}
+
+function handleAvatarUpload(input) {
+  var file = input.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var dataUrl = e.target.result;
+    var key = 'bo_avatar_' + ((currentUser||{}).id || (currentUser||{}).username || 'user');
+    localStorage.setItem(key, dataUrl);
+    // Atualizar no painel
+    var img = document.getElementById('up-avatar-img');
+    var initials = document.getElementById('up-avatar-initials');
+    if (img) { img.src = dataUrl; img.style.display = 'block'; }
+    if (initials) initials.style.display = 'none';
+    // Atualizar na sidebar
+    applySidebarUser(currentUser);
+  };
+  reader.readAsDataURL(file);
+}
+
+async function saveUserPanel() {
+  var msgEl = document.getElementById('up-msg');
+  function showMsg(txt, ok) {
+    if (!msgEl) return;
+    msgEl.textContent = txt;
+    msgEl.style.display = 'block';
+    msgEl.style.background = ok ? 'var(--green-bg)' : 'var(--red-bg)';
+    msgEl.style.color = ok ? 'var(--green)' : 'var(--red)';
+  }
+
+  var pwdAtual   = (document.getElementById('up-pwd-atual')||{}).value  || '';
+  var pwdNova    = (document.getElementById('up-pwd-nova')||{}).value   || '';
+  var pwdConfirm = (document.getElementById('up-pwd-confirm')||{}).value|| '';
+
+  // Trocar senha se campos preenchidos
+  if (pwdAtual || pwdNova || pwdConfirm) {
+    if (!pwdAtual || !pwdNova || !pwdConfirm) { showMsg('Preencha todos os campos de senha.', false); return; }
+    if (pwdNova !== pwdConfirm) { showMsg('Nova senha e confirmação não coincidem.', false); return; }
+    try {
+      var res = await fetch(API_BASE + '/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
+        body: JSON.stringify({ current_password: pwdAtual, new_password: pwdNova })
+      });
+      if (res.ok) {
+        showMsg('Senha alterada com sucesso!', true);
+        ['up-pwd-atual','up-pwd-nova','up-pwd-confirm'].forEach(function(id){
+          var el = document.getElementById(id); if (el) el.value = '';
+        });
+      } else {
+        var d = await res.json().catch(function(){return{};});
+        showMsg(d.detail || 'Erro ao alterar senha.', false); return;
+      }
+    } catch(e) { showMsg('Sem conexão com o servidor.', false); return; }
+  } else {
+    showMsg('Salvo!', true);
+    setTimeout(function(){ closeUserPanel(); }, 800);
+  }
 }
