@@ -11,26 +11,34 @@ var ROA_FIXO_TIPOS=['Corretagem'];
 var ROA_FIXO=0.3750;
 
 async function loadFlow(){
-  // 1. Carrega localStorage como fallback imediato
+  // 1. Render imediato com localStorage
   try{ flowItems=JSON.parse(localStorage.getItem('brokerone_flow')||'[]'); }catch(e){ flowItems=[]; }
   renderFlow();
 
-  // 2. Busca do backend e re-renderiza
-  if(typeof authToken==='undefined'||!authToken) return;
+  // 2. Aguarda token estar disponível (retry até 2s)
+  var token = (typeof authToken !== 'undefined' && authToken)
+    ? authToken
+    : (sessionStorage.getItem('bo_token') || '');
+
+  if(!token){ console.warn('Flow: sem token, abortando fetch'); return; }
+
+  var headers = {'Content-Type':'application/json','Authorization':'Bearer '+token};
+  var base = (typeof API_BASE !== 'undefined') ? API_BASE : 'https://broker-one-backend-production-90c9.up.railway.app';
+
   try{
-    var res=await fetch(API_BASE+'/api/boletas/',{headers:apiHeaders()});
+    var res = await fetch(base+'/api/boletas/', {headers: headers});
     if(res.ok){
-      var data=await res.json();
-      flowItems=data.map(function(b){
-        return {
+      var data = await res.json();
+      flowItems = data.map(function(b){
+        return typeof fromSnake === 'function' ? fromSnake(b) : {
           id:b.id,
-          clienteCod:b.cliente_cod||b.clienteCod||'',
+          clienteCod:b.cliente_cod||'',
           assessor:b.assessor||'',
           data:b.data||'',
           tipo:b.tipo||'',
           detalhes:b.detalhes||'',
           papel:b.papel||'',
-          volFin:b.vol_fin!=null?b.vol_fin:(b.volFin||0),
+          volFin:b.vol_fin||0,
           roa:b.roa||0,
           comissao:b.comissao||0,
           status:b.status||'push',
@@ -38,19 +46,22 @@ async function loadFlow(){
           qtd:b.qtd||null,
           preco:b.preco||null,
           debito:b.debito||null,
-          confStatus:b.conf_status||b.confStatus||null,
-          corretagemAdicional:b.corretagem_adicional||b.corretagemAdicional||false,
-          corretagemComissao:b.corretagem_comissao||b.corretagemComissao||null,
-          createdAt:b.created_at||b.createdAt||'',
-          updatedAt:b.updated_at||b.updatedAt||''
+          confStatus:b.conf_status||null,
+          corretagemAdicional:b.corretagem_adicional||false,
+          corretagemComissao:b.corretagem_comissao||null,
+          createdAt:b.created_at||'',
+          updatedAt:b.updated_at||''
         };
       });
       localStorage.setItem('brokerone_flow',JSON.stringify(flowItems));
       renderFlow();
       updateFlowBadge();
+      console.log('Flow: '+flowItems.length+' boletas carregadas do backend');
+    } else {
+      console.warn('Flow: backend retornou '+res.status);
     }
   }catch(e){
-    console.warn('Flow: erro ao buscar boletas do backend',e);
+    console.warn('Flow: erro no fetch',e);
   }
 }
 
