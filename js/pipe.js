@@ -276,37 +276,124 @@
       return;
     }
     lista.innerHTML = '';
-    // Ordena por data_inicio desc
+    var user = getUser();
+    var nivel = user ? (user.nivel || 1) : 1;
+    var podeGerenciar = nivel >= 2;
+
     var sorted = sessoes.slice().sort(function (a, b) {
       return (b.data_inicio || '').localeCompare(a.data_inicio || '');
     });
     sorted.forEach(function (s) {
       var ativa = pipeState.sessaoAtual && pipeState.sessaoAtual.id === s.id;
-      var totLinha = 0;
-      // calcular total apenas se for a sessão ativa (linhas carregadas)
-      if (ativa) {
-        pipeState.linhas.forEach(function (l) {
-          totLinha += (l.corretagem || 0) + (l.coe || 0) + (l.estruturados || 0);
-        });
-      } else {
-        totLinha = s.total_cache || 0;
-      }
+      var totLinha = ativa
+        ? pipeState.linhas.reduce(function(acc, l){ return acc + (l.corretagem||0) + (l.coe||0) + (l.estruturados||0); }, 0)
+        : (s.total_cache || 0);
 
       var div = document.createElement('div');
       div.className = 'pipe-historico-item' + (ativa ? ' ativa' : '');
-      div.onclick = function () { pipeCarregarSessao(s.id); };
+
+      var botoesHtml = '';
+      if (podeGerenciar) {
+        var labelVer = ativa ? 'Visualizando' : 'Ver';
+        var btnReabrir = (s.status === 'trancada')
+          ? '<button class="phi-btn" onclick="event.stopPropagation();pipeReabrirSessao(' + s.id + ')">Reabrir</button>'
+          : '';
+        botoesHtml =
+          (ativa ? '' : '<button class="phi-btn" onclick="event.stopPropagation();pipeCarregarSessao(' + s.id + ')">' + labelVer + '</button>') +
+          btnReabrir +
+          '<button class="phi-btn phi-btn-del" onclick="event.stopPropagation();pipeAbrirDelModal(' + s.id + ',\'' + semanaLabel(s.data_inicio).replace(/'/g,"\\'") + '\')">Excluir</button>';
+      }
+
       div.innerHTML =
-        '<div class="phi-left">' +
+        '<div class="phi-left" onclick="pipeCarregarSessao(' + s.id + ')">' +
         '<span class="phi-semana">' + semanaLabel(s.data_inicio) + '</span>' +
         '<span class="phi-meta">Aberta por ' + (s.criado_por || '—') + ' · ' + formatarData(s.data_inicio) + '</span>' +
         '</div>' +
         '<div class="phi-right">' +
         (totLinha > 0 ? '<span class="phi-total">' + fmtBRL(totLinha) + '</span>' : '') +
         '<span class="phi-badge ' + (s.status || 'aberta') + '">' + (s.status || 'ABERTA').toUpperCase() + '</span>' +
+        botoesHtml +
         '</div>';
       lista.appendChild(div);
     });
   }
+
+  /* ── modal de exclusão de sessão ── */
+  var _delSessaoId = null;
+  window.pipeAbrirDelModal = function (sessaoId, label) {
+    _delSessaoId = sessaoId;
+    var descEl = el('pipe-del-desc');
+    if (descEl) descEl.textContent = label;
+    var overlay = el('pipe-del-overlay');
+    if (overlay) overlay.style.display = 'flex';
+  };
+  window.pipeFecharDelModal = function (e) {
+    if (e && e.target !== el('pipe-del-overlay')) return;
+    var overlay = el('pipe-del-overlay');
+    if (overlay) overlay.style.display = 'none';
+    _delSessaoId = null;
+  };
+  window.pipeConfirmarExclusao = async function () {
+    if (!_delSessaoId) return;
+    var sessaoId = _delSessaoId;
+    var overlay = el('pipe-del-overlay');
+    if (overlay) overlay.style.display = 'none';
+    _delSessaoId = null;
+
+    try {
+      var res = await fetch(API_BASE_PIPE + '/api/pipe/sessao/' + sessaoId, {
+        method: 'DELETE',
+        headers: authHeaders()
+      });
+      if (res.ok || res.status === 204) {
+        // Remove do estado local
+        pipeState.sessoes = pipeState.sessoes.filter(function(s){ return s.id !== sessaoId; });
+        // Se era a sessão atual, limpa
+        if (pipeState.sessaoAtual && pipeState.sessaoAtual.id === sessaoId) {
+          pipeState.sessaoAtual = null;
+          pipeState.linhas = [];
+        }
+        pipeRenderSessao();
+        pipeRenderHistorico();
+        toast('Sessão excluída.', true);
+      } else {
+        var d = await res.json().catch(function(){ return {}; });
+        toast(d.detail || 'Erro ao excluir sessão.', false);
+      }
+    } catch(e) {
+      toast('Sem conexão com o servidor.', false);
+    }
+  };
+
+  /* ── reabrir sessão trancada (Admin/Líder) ── */
+  window.pipeReabrirSessao = async function (sessaoId) {
+    var user = getUser();
+    if (!user || (user.nivel || 1) < 2) { toast('Sem permissão.', false); return; }
+    if (!confirm('Reabrir essa sessão? Ela voltará ao estado ABERTA e poderá ser editada.')) return;
+    try {
+      var res = await fetch(API_BASE_PIPE + '/api/pipe/sessao/' + sessaoId + '/reabrir', {
+        method: 'PATCH',
+        headers: authHeaders()
+      });
+      if (res.ok) {
+        var sessao = await res.json();
+        // Atualiza no array
+        pipeState.sessoes = pipeState.sessoes.map(function(s){ return s.id === sessaoId ? sessao : s; });
+        // Carrega como sessão atual
+        pipeState.sessaoAtual = sessao;
+        var resL = await fetch(API_BASE_PIPE + '/api/pipe/sessao/' + sessaoId + '/linhas', { headers: authHeaders() });
+        pipeState.linhas = resL.ok ? (await resL.json()) : [];
+        pipeRenderSessao();
+        pipeRenderHistorico();
+        toast('Sessão reaberta com sucesso!', true);
+      } else {
+        var d = await res.json().catch(function(){ return {}; });
+        toast(d.detail || 'Erro ao reabrir sessão.', false);
+      }
+    } catch(e) {
+      toast('Sem conexão com o servidor.', false);
+    }
+  };
 
   /* ── carregar sessão específica do histórico ── */
   window.pipeCarregarSessao = async function (sessaoId) {
