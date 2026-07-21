@@ -432,7 +432,7 @@ function renderAdmUserList() {
 }
 
 // ── Abrir modal de novo usuário ──
-function openNewUserModal() {
+async function openNewUserModal() {
   _admEditingUserId = null;
   var titleEl = document.getElementById('adm-user-modal-title');
   if (titleEl) titleEl.textContent = 'Novo Usuário';
@@ -443,7 +443,7 @@ function openNewUserModal() {
   var nivelEl = document.getElementById('adm-u-nivel');
   if (nivelEl) nivelEl.value = '1';
   var brokerEl = document.getElementById('adm-u-broker');
-  if (brokerEl) { _admPopulateBrokerSelect(); brokerEl.value = ''; }
+  if (brokerEl) { await _admPopulateBrokerSelect(''); }
   var pwdWrap = document.getElementById('adm-u-senha-wrap');
   if (pwdWrap) pwdWrap.style.display = '';
   var msgEl = document.getElementById('adm-u-msg');
@@ -456,7 +456,7 @@ function openNewUserModal() {
 
 var _admEditingUserId = null;
 
-function admEditUser(userId) {
+async function admEditUser(userId) {
   var u = _admUsers.find(function(x){ return x.id === userId; });
   if (!u) return;
   _admEditingUserId = userId;
@@ -476,7 +476,7 @@ function admEditUser(userId) {
   var pwdEl = document.getElementById('adm-u-senha');
   if (pwdEl) { pwdEl.value = ''; pwdEl.placeholder = 'Deixe em branco para não alterar'; }
   // Broker vinculado
-  _admPopulateBrokerSelect(u.broker_vinculado || '');
+  await _admPopulateBrokerSelect(u.broker_vinculado || '');
   // botão excluir
   var delBtn = document.getElementById('adm-u-delete-btn');
   if (delBtn) delBtn.style.display = (currentUser && u.id !== currentUser.id) ? 'inline-flex' : 'none';
@@ -486,12 +486,38 @@ function admEditUser(userId) {
   if (overlay) overlay.style.display = 'flex';
 }
 
-function _admPopulateBrokerSelect(selected) {
+async function _admPopulateBrokerSelect(selected) {
   var sel = document.getElementById('adm-u-broker');
   if (!sel) return;
+
+  // 1. Tenta via getParamData() (já carregado em memória)
   var params = window.getParamData ? window.getParamData() : [];
-  // brokers únicos da parametrização
-  var brokers = [...new Set(params.map(function(p){ return (p.broker||'').trim(); }).filter(Boolean))].sort();
+
+  // 2. Se vazio, busca direto do backend
+  if (!params.length) {
+    try {
+      var r = await fetch(API_BASE + '/api/param/', { headers: apiHeaders() });
+      if (r.ok) params = await r.json();
+    } catch(e) { /* silencia — usará lista vazia */ }
+  }
+
+  // 3. Brokers únicos da lista de usuários já carregados
+  var brokersFromUsers = _admUsers
+    .filter(function(u){ return u.nivel === 1 || (u.nivel >= 1 && u.nivel <= 3); })
+    .map(function(u){ return (u.name || u.username || '').trim(); })
+    .filter(Boolean);
+
+  // 4. Brokers da parametrização
+  var brokersFromParam = params.map(function(p){ return (p.broker||'').trim(); }).filter(Boolean);
+
+  // 5. União, deduplicada e ordenada
+  var brokers = [...new Set([...brokersFromParam, ...brokersFromUsers])].sort();
+
+  // 6. Se ainda vazio, usa os próprios usuários como opção
+  if (!brokers.length) {
+    brokers = _admUsers.map(function(u){ return (u.name || u.username || '').trim(); }).filter(Boolean).sort();
+  }
+
   sel.innerHTML = '<option value="">— Nenhum (sem vínculo) —</option>';
   brokers.forEach(function(b){
     var opt = document.createElement('option');
