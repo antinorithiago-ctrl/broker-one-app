@@ -301,7 +301,10 @@ window.exportParamCSV=function(){
     };
     input.click();
   };
-  document.getElementById('param-overlay').addEventListener('click',function(e){if(e.target===this)closeParamModal();});
+  // listener movido para renderParam — elemento só existe após fetch
   loadParam();
+  // bind do overlay no primeiro render
+  var _po=document.getElementById('param-overlay');
+  if(_po)_po.addEventListener('click',function(e){if(e.target===this)closeParamModal();});
 })();
 

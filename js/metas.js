@@ -80,7 +80,7 @@
   };
   window.deleteMeta=function(){if(!editingMetaId)return;if(!confirm('Excluir esta meta?'))return;metasData=metasData.filter(function(x){return x.id!==editingMetaId;});save();closeMetaModal();renderMetas();toast('Meta excluída');};
 
-  document.getElementById('meta-overlay').addEventListener('click',function(e){if(e.target===this)closeMetaModal();});
+  var _mo=document.getElementById('meta-overlay');if(_mo)_mo.addEventListener('click',function(e){if(e.target===this)closeMetaModal();});
   load();
 })();
 

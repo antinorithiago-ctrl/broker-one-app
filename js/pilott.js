@@ -173,19 +173,42 @@
     closeModal();pilottRender();
   }
 
-  document.getElementById('newTaskBtn').addEventListener('click',function(){openModal(null);});
-  document.getElementById('modalCloseBtn').addEventListener('click',closeModal);
-  document.getElementById('cancelBtn').addEventListener('click',closeModal);
-  document.getElementById('saveBtn').addEventListener('click',saveFromModal);
-  document.getElementById('clearDoneBtn').addEventListener('click',clearCompleted);
-  document.getElementById('taskOverlay').addEventListener('click',function(e){if(e.target.id==='taskOverlay')closeModal();});
-  document.getElementById('viewCloseIconBtn').addEventListener('click',closeViewModal);
-  document.getElementById('viewCloseBtn').addEventListener('click',closeViewModal);
-  document.getElementById('viewOverlay').addEventListener('click',function(e){if(e.target.id==='viewOverlay')closeViewModal();});
-  document.getElementById('viewEditBtn').addEventListener('click',function(){var t=state.tasks.find(function(x){return x.id===viewingTaskId;});closeViewModal();if(t)openModal(t);});
-  document.getElementById('viewDeleteBtn').addEventListener('click',function(){var id=viewingTaskId;closeViewModal();deleteTask(id);pilottRender();showStatus('Tarefa excluída.');});
+  // Listeners movidos para pilottLoad() — elementos só existem após fetch da page
 
-  pilottLoad();
-  initUrgency();
+  pilottLoad = function() {
+    loadTasks();
+    pilottRender();
+    // Bind de eventos — só após o DOM da page estar carregado
+    function bindEl(id, evt, fn) {
+      var el = document.getElementById(id);
+      if (el) el.addEventListener(evt, fn);
+    }
+    bindEl('newTaskBtn',      'click', function(){ openModal(null); });
+    bindEl('modalCloseBtn',   'click', closeModal);
+    bindEl('cancelBtn',       'click', closeModal);
+    bindEl('saveBtn',         'click', saveFromModal);
+    bindEl('clearDoneBtn',    'click', clearCompleted);
+    bindEl('taskOverlay',     'click', function(e){ if(e.target.id==='taskOverlay') closeModal(); });
+    bindEl('viewCloseIconBtn','click', closeViewModal);
+    bindEl('viewCloseBtn',    'click', closeViewModal);
+    bindEl('viewOverlay',     'click', function(e){ if(e.target.id==='viewOverlay') closeViewModal(); });
+    bindEl('viewEditBtn',     'click', function(){ var t=state.tasks.find(function(x){return x.id===viewingTaskId;}); closeViewModal(); if(t) openModal(t); });
+    bindEl('viewDeleteBtn',   'click', function(){ var id=viewingTaskId; closeViewModal(); deleteTask(id); pilottRender(); showStatus('Tarefa excluída.'); });
+  };
+
+  initUrgency = function() {
+    renderUrgency();
+    var addBtn = document.getElementById('urgencyAddBtn');
+    if (addBtn) addBtn.addEventListener('click', function(){ openModal(null, null, true); });
+    var urgList = document.getElementById('urgencyList');
+    if (urgList) {
+      urgList.addEventListener('dragover', function(e){ e.preventDefault(); });
+      urgList.addEventListener('drop', function(e){
+        e.preventDefault();
+        if (draggingId) { markUrgent(draggingId, true); draggingId = null; pilottRender(); renderUrgency(); }
+      });
+    }
+  };
+
 })();
 
