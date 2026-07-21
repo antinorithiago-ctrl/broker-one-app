@@ -138,9 +138,7 @@ function openAdminPanel(){document.getElementById('adm-overlay').style.display='
 
 // ── openChangePwd (from orig)
 function openChangePwd(){
-  ['pwd-atual','pwd-nova','pwd-confirm'].forEach(function(id){document.getElementById(id).value='';});
-  document.getElementById('pwd-msg').style.display='none';
-  document.getElementById('pwd-overlay').style.display='flex';
+  openUserPanel();
 }
 
 // ── escHtml (from orig)
