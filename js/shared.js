@@ -89,7 +89,7 @@ function onPageLoaded(page) {
     }
     else if (page === 'flow')           { typeof loadFlow !== 'undefined' && loadFlow(); }
     else if (page === 'pilott')         { typeof pilottLoad !== 'undefined' && pilottLoad(); typeof initUrgency !== 'undefined' && initUrgency(); }
-    else if (page === 'pipe')           { typeof loadPipe !== 'undefined' && loadPipe(); }
+    else if (page === 'pipe')           { typeof initPipe !== 'undefined' && initPipe(); }
     else if (page === 'parametrizacao') { typeof window.renderParam !== 'undefined' && window.renderParam(); }
     else if (page === 'metas')          { typeof window.loadMetas !== 'undefined' && window.loadMetas(); }
     typeof setDates !== 'undefined' && setDates(page);
@@ -119,4 +119,3 @@ function getVolFinRaw(){
   var s=el.value.replace(/[.]/g,'').replace(',','.');
   return parseFloat(s)||0;
 }
-
