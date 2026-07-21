@@ -1012,3 +1012,20 @@ select option { background: var(--ink-3); color: var(--text); }
 #taskOverlay .field-row, #viewOverlay .field-row {
   display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
 }
+
+/* ══ USER PANEL FOOTER ══════════════════════════════════════════ */
+#user-avatar-btn:hover .sidebar-avatar {
+  border-color: var(--coral);
+}
+#user-avatar-btn:hover .sidebar-user-name {
+  color: var(--coral);
+}
+
+/* ══ USER PANEL MODAL ═══════════════════════════════════════════ */
+#user-panel-overlay .modal {
+  background: var(--bg-card-2);
+  border: 1px solid var(--border);
+}
+#user-panel-overlay .modal-header {
+  border-bottom: 1px solid var(--border);
+}
