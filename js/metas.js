@@ -503,23 +503,29 @@
     const file = e.target.files[0];
     if (!file) return;
     e.target.value = '';
-    const text = await file.text();
-    const lines = text.trim().split('\n');
-    const header = lines[0].toLowerCase();
-    const hasHeader = header.includes('assessor') || header.includes('meta');
+
+    const buf  = await file.arrayBuffer();
+    const raw  = new TextDecoder('utf-8').decode(buf);
+    const text = raw.replace(/^\uFEFF/, '');
+    const lines = text.split(/\r?\n/);
+
+    const firstLine = lines[0].toLowerCase();
+    const hasHeader = firstLine.includes('assessor') || firstLine.includes('meta') || firstLine.includes('m\u00eas');
     const dataLines = hasHeader ? lines.slice(1) : lines;
+
     const tok = sessionStorage.getItem('bo_token');
     let ok = 0, err = 0, skip = 0;
     const statusEl = document.getElementById('metas-import-status');
-    if (statusEl) { statusEl.textContent = 'Importando…'; statusEl.className = 'import-status'; statusEl.style.display = 'inline'; }
+    if (statusEl) { statusEl.textContent = 'Importando\u2026'; statusEl.className = 'import-status'; statusEl.style.display = 'inline'; }
 
     for (const line of dataLines) {
       if (!line.trim()) continue;
       const cols = parseCsvLine(line);
       if (cols.length < 4) { skip++; continue; }
-      const [assessor, semestre, mes, metaRaw] = cols.map(c => c.trim().replace(/^"|"$/g, ''));
-      const meta_rv = parseFloat(metaRaw.replace(',', '.')) || 0;
+      const clean = cols.map(c => c.replace(/\r/g, '').replace(/^"|"$/g, '').trim());
+      const [assessor, semestre, mes, metaRaw] = clean;
       if (!assessor || !semestre || !mes) { skip++; continue; }
+      const meta_rv = parseFloat(metaRaw.replace(/\./g, '').replace(',', '.')) || 0;
       const exist = _metasList.find(m => m.assessor === assessor && m.semestre === semestre && m.mes === mes);
       try {
         let r;
@@ -536,12 +542,16 @@
             body: JSON.stringify({ assessor, semestre, mes, meta_rv, valor_meta: meta_rv })
           });
         }
-        r.ok ? ok++ : err++;
-      } catch { err++; }
+        if (r.ok) { ok++; } else {
+          const body = await r.text();
+          console.warn(`Metas CSV erro ${r.status} \u2014 ${assessor}:`, body);
+          err++;
+        }
+      } catch (ex) { console.warn('Metas CSV:', ex); err++; }
     }
 
     if (statusEl) {
-      statusEl.textContent = `✓ ${ok} importadas${err ? `, ${err} erros` : ''}${skip ? `, ${skip} ignoradas` : ''}`;
+      statusEl.textContent = `\u2713 ${ok} importadas${err ? `, ${err} erros` : ''}${skip ? `, ${skip} ignoradas` : ''}`;
       statusEl.className = err > 0 ? 'import-status err' : 'import-status ok';
       setTimeout(() => { statusEl.style.display = 'none'; }, 5000);
     }
