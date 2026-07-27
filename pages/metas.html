@@ -5,30 +5,34 @@
   </div>
   <div class="ph-actions">
     <span id="metas-import-status" class="import-status" style="display:none"></span>
-    <label class="btn-sec" id="metas-import-btn" title="Importar CSV">
-      ↑ Importar CSV
-    </label>
-    <input type="file" id="metas-csv-input" accept=".csv" style="display:none" />
+    <button class="btn-sec" id="metas-import-btn">↑ Importar CSV</button>
+    <input type="file" id="metas-csv-input" accept=".csv,.xlsx" style="display:none" />
     <button class="btn-coral" id="metas-nova-btn">+ Nova Meta</button>
   </div>
 </div>
 
-<!-- Tabela principal -->
+<!-- Barra de ações em lote (aparece ao selecionar) -->
+<div id="metas-batch-bar" class="batch-bar" style="display:none">
+  <span id="metas-batch-count" class="batch-count"></span>
+  <button class="btn-batch-del" onclick="excluirLoteSelecionados()">✕ Excluir selecionadas</button>
+  <button class="btn-batch-cancel" onclick="limparSelecao()">Cancelar</button>
+</div>
+
+<!-- Tabela agrupada por período -->
 <div class="metas-wrap">
-  <div class="metas-hint">
-    💡 <strong>Dica CSV:</strong> colunas <code>assessor,semestre,mes,meta_rv</code> — ex: <code>"João Silva",2025-S1,2025-07,50000</code>
-  </div>
   <table class="metas-table">
     <thead>
       <tr>
-        <th>ASSESSOR</th>
-        <th>SEMESTRE</th>
-        <th>MÊS</th>
-        <th>META (R$)</th>
+        <th style="width:32px"></th>
+        <th style="width:24px"></th>
+        <th>PERÍODO / ASSESSOR</th>
+        <th style="width:120px">SEMESTRE</th>
+        <th style="width:160px">META TOTAL (R$)</th>
+        <th style="width:80px"></th>
       </tr>
     </thead>
     <tbody id="metas-tbody">
-      <tr><td colspan="4" style="text-align:center;color:var(--muted);padding:40px">Carregando…</td></tr>
+      <tr><td colspan="6" class="td-empty">Carregando…</td></tr>
     </tbody>
   </table>
 </div>
@@ -41,7 +45,7 @@
       <button class="modal-close" onclick="fecharModalSessao()">✕</button>
     </div>
     <div class="modal-body">
-      <p class="sessao-desc">Escolha o período. Os assessores do seu squad serão carregados automaticamente.</p>
+      <p class="sessao-desc">Escolha o período. Os assessores do seu squad serão carregados automaticamente, com metas já lançadas pré-preenchidas.</p>
       <div class="form-row-3">
         <div class="field-group">
           <label class="field-label">ANO</label>
@@ -97,6 +101,7 @@
         <thead>
           <tr>
             <th>ASSESSOR</th>
+            <th>BROKER</th>
             <th>META RV (R$)</th>
           </tr>
         </thead>
@@ -111,133 +116,156 @@
   </div>
 </div>
 
+<!-- ══ MODAL CONFIRMAÇÃO EXCLUSÃO ══ -->
+<div id="metas-conf-overlay" class="modal-overlay" style="display:none">
+  <div class="modal-card modal-xs">
+    <div class="modal-header">
+      <span class="modal-title" style="color:#e59a9a">⚠ Confirmar Exclusão</span>
+      <button class="modal-close" onclick="fecharConfirmacao()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p id="metas-conf-msg" class="conf-msg"></p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="fecharConfirmacao()">Cancelar</button>
+      <button class="btn-danger" id="metas-conf-ok" onclick="executarExclusao()">Excluir</button>
+    </div>
+  </div>
+</div>
+
 <style>
-/* ── page header ── */
-.page-header { display:flex; justify-content:space-between; align-items:center; padding:20px 24px 0; }
-.ph-left { display:flex; align-items:baseline; gap:10px; }
-.ph-title { font-size:20px; font-weight:700; color:var(--text); }
-.ph-sub { font-size:13px; color:var(--muted); }
-.ph-actions { display:flex; align-items:center; gap:10px; }
+/* ── layout geral ── */
+.page-header{display:flex;justify-content:space-between;align-items:center;padding:20px 24px 0}
+.ph-left{display:flex;align-items:baseline;gap:10px}
+.ph-title{font-size:20px;font-weight:700;color:var(--text)}
+.ph-sub{font-size:13px;color:var(--muted)}
+.ph-actions{display:flex;align-items:center;gap:10px}
+
+/* ── barra de lote ── */
+.batch-bar{
+  display:flex;align-items:center;gap:10px;
+  margin:12px 24px 0;padding:10px 16px;
+  background:#1e1a12;border:1px solid #6b4a1a;border-radius:8px;
+}
+.batch-count{font-size:13px;color:#e8b56a;font-weight:600;flex:1}
+.btn-batch-del{background:#3a1a1a;border:1px solid #6b3a3a;color:#e59a9a;border-radius:16px;padding:5px 14px;font-size:12px;cursor:pointer}
+.btn-batch-del:hover{background:#4a2020}
+.btn-batch-cancel{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:16px;padding:5px 14px;font-size:12px;cursor:pointer}
 
 /* ── tabela ── */
-.metas-wrap { padding:16px 24px 24px; }
-.metas-hint {
-  background: #1a1f28;
-  border:1px solid var(--border);
-  border-radius:8px;
-  padding:10px 14px;
-  font-size:12px;
-  color:var(--muted);
-  margin-bottom:14px;
+.metas-wrap{padding:16px 24px 40px}
+.metas-table{width:100%;border-collapse:collapse;font-size:13px}
+.metas-table thead th{
+  font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;
+  color:var(--muted);text-align:left;padding:8px 10px;
+  border-bottom:1px solid var(--border)
 }
-.metas-hint code { color:#E05A3A; font-family:'IBM Plex Mono', monospace; }
-.metas-table { width:100%; border-collapse:collapse; font-size:13px; }
-.metas-table thead th {
-  font-family:'IBM Plex Mono', monospace;
-  font-size:10px;
-  letter-spacing:.1em;
-  color:var(--muted);
-  text-align:left;
-  padding:8px 12px;
-  border-bottom:1px solid var(--border);
-}
-.metas-table tbody tr { border-bottom:1px solid rgba(255,255,255,.04); }
-.metas-table tbody tr:hover { background:rgba(255,255,255,.03); }
-.metas-table tbody td { padding:10px 12px; color:var(--text); }
-.chip-smt {
-  background:#1e2530;
-  border:1px solid var(--border);
-  border-radius:4px;
-  padding:2px 8px;
-  font-size:11px;
-  font-family:'IBM Plex Mono', monospace;
-  color:var(--muted);
-}
-.td-meta { font-weight:600; color:#E05A3A; font-family:'IBM Plex Mono', monospace; }
 
-/* ── botões ── */
-.btn-coral {
-  background:#E05A3A; color:#fff; border:none; border-radius:20px;
-  padding:8px 18px; font-size:13px; font-weight:600; cursor:pointer;
+/* linha de período */
+.row-periodo{border-bottom:1px solid var(--border);cursor:default}
+.row-periodo td{padding:12px 10px}
+.row-periodo:hover{background:rgba(255,255,255,.02)}
+.row-periodo.expanded{background:rgba(224,90,58,.04)}
+
+.td-chk{width:32px}
+.td-chk input[type=checkbox]{accent-color:#E05A3A;width:14px;height:14px;cursor:pointer}
+.td-expand{width:24px;cursor:pointer;color:var(--muted);font-size:12px;user-select:none}
+.expand-icon{display:inline-block;transition:transform .15s}
+
+.td-periodo{cursor:pointer}
+.period-label{font-weight:700;color:var(--text);font-size:14px;display:block}
+.period-count{font-size:11px;color:var(--muted);margin-top:2px;display:block}
+
+.td-sem .chip-smt{
+  background:#1e2530;border:1px solid var(--border);border-radius:4px;
+  padding:2px 8px;font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--muted)
 }
-.btn-coral:hover { background:#C44A2A; }
-.btn-coral:disabled { opacity:.5; cursor:not-allowed; }
-.btn-sec {
-  background:transparent; color:var(--muted); border:1px solid var(--border);
-  border-radius:20px; padding:7px 14px; font-size:13px; cursor:pointer;
-  display:inline-flex; align-items:center; gap:6px;
+.td-meta-total{
+  font-weight:700;color:#E05A3A;
+  font-family:'IBM Plex Mono',monospace;font-size:14px
 }
-.btn-sec:hover { border-color:#E05A3A; color:#E05A3A; }
-.btn-ghost {
-  background:transparent; color:var(--muted); border:1px solid var(--border);
-  border-radius:20px; padding:8px 18px; font-size:13px; cursor:pointer;
+
+/* linha de assessor */
+.row-assessor{border-bottom:1px solid rgba(255,255,255,.03)}
+.row-assessor td{padding:8px 10px}
+.row-assessor:hover{background:rgba(255,255,255,.02)}
+.td-assessor-nome{color:var(--text);font-size:13px;padding-left:56px !important}
+.td-broker-nome{color:var(--muted);font-size:12px}
+.td-meta-ind{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--text)}
+
+/* ações */
+.td-acoes{text-align:right;white-space:nowrap}
+.btn-icon{
+  background:transparent;border:none;cursor:pointer;
+  padding:4px 7px;border-radius:6px;font-size:13px;
+  color:var(--muted);transition:background .15s,color .15s
 }
-.btn-ghost:hover { color:var(--text); }
+.btn-edit-periodo:hover,.btn-edit-meta:hover{background:#1a2535;color:#7aadde}
+.btn-del-periodo:hover,.btn-del-meta:hover{background:#2e1a1a;color:#e59a9a}
+
+/* vazio */
+.td-empty{text-align:center;color:var(--muted);padding:48px}
+
+/* ── botões globais ── */
+.btn-coral{background:#E05A3A;color:#fff;border:none;border-radius:20px;padding:8px 18px;font-size:13px;font-weight:600;cursor:pointer}
+.btn-coral:hover{background:#C44A2A}
+.btn-coral:disabled{opacity:.5;cursor:not-allowed}
+.btn-sec{background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:20px;padding:7px 14px;font-size:13px;cursor:pointer}
+.btn-sec:hover{border-color:#E05A3A;color:#E05A3A}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:20px;padding:8px 18px;font-size:13px;cursor:pointer}
+.btn-ghost:hover{color:var(--text)}
+.btn-danger{background:#3a1a1a;border:1px solid #6b3a3a;color:#e59a9a;border-radius:20px;padding:8px 18px;font-size:13px;font-weight:600;cursor:pointer}
+.btn-danger:hover{background:#4a2020}
 
 /* ── modais ── */
-.modal-overlay {
-  position:fixed; inset:0; background:rgba(0,0,0,.65);
-  display:flex; align-items:center; justify-content:center; z-index:1000;
-}
-.modal-card {
-  background:#111519; border:1px solid var(--border); border-radius:12px;
-  width:100%; max-height:88vh; display:flex; flex-direction:column;
-  animation: modalIn .18s ease;
-}
-@keyframes modalIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:none; } }
-.modal-sm { max-width:420px; }
-.meta-lanc-modal { max-width:560px; }
-.modal-header {
-  display:flex; justify-content:space-between; align-items:center;
-  padding:16px 20px; border-bottom:1px solid var(--border);
-}
-.modal-title { font-size:15px; font-weight:700; color:var(--text); }
-.modal-close { background:none; border:none; color:var(--muted); font-size:18px; cursor:pointer; line-height:1; }
-.modal-body { padding:20px; overflow-y:auto; flex:1; }
-.modal-footer {
-  display:flex; justify-content:flex-end; align-items:center;
-  gap:10px; padding:14px 20px; border-top:1px solid var(--border);
-}
-.sessao-desc { color:var(--muted); font-size:13px; margin:0 0 16px; }
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:1000}
+.modal-card{background:#111519;border:1px solid var(--border);border-radius:12px;width:100%;max-height:88vh;display:flex;flex-direction:column;animation:modalIn .18s ease}
+@keyframes modalIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.modal-xs{max-width:380px}
+.modal-sm{max-width:440px}
+.meta-lanc-modal{max-width:580px}
+.modal-header{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border)}
+.modal-title{font-size:15px;font-weight:700;color:var(--text)}
+.modal-close{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer}
+.modal-body{padding:20px;overflow-y:auto;flex:1}
+.modal-footer{display:flex;justify-content:flex-end;align-items:center;gap:10px;padding:14px 20px;border-top:1px solid var(--border)}
+.sessao-desc{color:var(--muted);font-size:13px;margin:0 0 18px;line-height:1.5}
+.conf-msg{color:var(--text);font-size:13px;line-height:1.6;margin:0}
 
 /* ── form sessão ── */
-.form-row-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
-.field-group { display:flex; flex-direction:column; gap:5px; }
-.field-label { font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.08em; color:var(--muted); }
-.lx-inp {
-  background:#0d1117; border:1px solid var(--border); border-radius:8px;
-  color:var(--text); font-size:13px; padding:8px 10px; outline:none; width:100%; box-sizing:border-box;
-  -webkit-appearance:none;
-}
-.lx-inp:focus { border-color:#E05A3A; }
+.form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.field-group{display:flex;flex-direction:column;gap:5px}
+.field-label{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;color:var(--muted)}
+.lx-inp{background:#0d1117;border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;padding:8px 10px;outline:none;width:100%;box-sizing:border-box;-webkit-appearance:none}
+.lx-inp:focus{border-color:#E05A3A}
 
-/* ── grade de assessores ── */
-.meta-lanc-body { padding:0; }
-.meta-lanc-table { width:100%; border-collapse:collapse; }
-.meta-lanc-table thead th {
-  font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.08em;
-  color:var(--muted); text-align:left; padding:12px 16px; border-bottom:1px solid var(--border);
-  position:sticky; top:0; background:#111519;
+/* ── grade assessores ── */
+.meta-lanc-body{padding:0}
+.meta-lanc-table{width:100%;border-collapse:collapse}
+.meta-lanc-table thead th{
+  font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;
+  color:var(--muted);text-align:left;padding:12px 16px;
+  border-bottom:1px solid var(--border);
+  position:sticky;top:0;background:#111519
 }
-.meta-lanc-table tbody tr { border-bottom:1px solid rgba(255,255,255,.04); }
-.meta-lanc-table tbody tr:hover { background:rgba(255,255,255,.03); }
-.meta-lanc-table td { padding:8px 16px; }
-.td-aai { color:var(--text); font-size:13px; }
-.meta-val-inp {
-  background:#0d1117; border:1px solid var(--border); border-radius:8px;
-  color:#E05A3A; font-size:13px; font-family:'IBM Plex Mono', monospace;
-  font-weight:600; padding:7px 10px; width:100%; box-sizing:border-box; outline:none;
+.meta-lanc-table tbody tr{border-bottom:1px solid rgba(255,255,255,.04)}
+.meta-lanc-table tbody tr:hover{background:rgba(255,255,255,.02)}
+.meta-lanc-table td{padding:8px 16px}
+.td-aai{color:var(--text);font-size:13px;width:45%}
+.td-broker-sub{color:var(--muted);font-size:12px;width:25%}
+.meta-val-inp{
+  background:#0d1117;border:1px solid var(--border);border-radius:8px;
+  color:#E05A3A;font-size:13px;font-family:'IBM Plex Mono',monospace;
+  font-weight:600;padding:7px 10px;width:100%;box-sizing:border-box;outline:none
 }
-.meta-val-inp:focus { border-color:#E05A3A; }
-.meta-val-inp::placeholder { color:rgba(255,255,255,.2); font-weight:400; }
+.meta-val-inp:focus{border-color:#E05A3A}
+.meta-val-inp::placeholder{color:rgba(255,255,255,.2);font-weight:400}
 
-/* ── import status ── */
-.import-status { font-size:12px; padding:4px 10px; border-radius:12px; }
-.import-status.ok { background:#1a2e1a; color:#7fc98a; border:1px solid #3a6b3a; }
-.import-status.err { background:#2e1a1a; color:#e59a9a; border:1px solid #6b3a3a; }
-
-/* ── lanc msg ── */
-.lanc-msg { font-size:12px; flex:1; }
-.lanc-msg.ok { color:#7fc98a; }
-.lanc-msg.err { color:#e59a9a; }
+/* ── status / msg ── */
+.import-status{font-size:12px;padding:4px 10px;border-radius:12px}
+.import-status.ok{background:#1a2e1a;color:#7fc98a;border:1px solid #3a6b3a}
+.import-status.err{background:#2e1a1a;color:#e59a9a;border:1px solid #6b3a3a}
+.lanc-msg{font-size:12px;flex:1}
+.lanc-msg.ok{color:#7fc98a}
+.lanc-msg.err{color:#e59a9a}
 </style>
