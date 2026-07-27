@@ -333,6 +333,11 @@
     if (overlay) overlay.style.display = 'none';
     _delSessaoId = null;
   };
+  window.pipeFecharDelModalBtn = function () {
+    var overlay = el('pipe-del-overlay');
+    if (overlay) overlay.style.display = 'none';
+    _delSessaoId = null;
+  };
   window.pipeConfirmarExclusao = async function () {
     if (!_delSessaoId) return;
     var sessaoId = _delSessaoId;
