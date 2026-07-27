@@ -17,7 +17,7 @@
 
   // ─── FETCH ────────────────────────────────────────────────────────────────
   async function fetchMetas() {
-    const tok = localStorage.getItem('brkToken');
+    const tok = sessionStorage.getItem('bo_token');
     try {
       const r = await fetch(`${API}/api/metas/`, {
         headers: { Authorization: `Bearer ${tok}` }
@@ -265,7 +265,7 @@
   window.salvarSessaoMetas = async function () {
     const sess = window._editSessao;
     if (!sess) return;
-    const tok = localStorage.getItem('brkToken');
+    const tok = sessionStorage.getItem('bo_token');
     const btn = document.getElementById('meta-lanc-salvar');
     if (btn) { btn.disabled = true; btn.textContent = 'Salvando…'; }
 
@@ -336,7 +336,7 @@
 
   window.executarExclusao = async function () {
     if (!_pendingDelete) return;
-    const tok = localStorage.getItem('brkToken');
+    const tok = sessionStorage.getItem('bo_token');
     const btn = document.getElementById('metas-conf-ok');
     if (btn) { btn.disabled = true; btn.textContent = 'Excluindo…'; }
 
@@ -455,7 +455,7 @@
     if (!sess) return;
     if (!sess._nova) return _origSalvar();
 
-    const tok = localStorage.getItem('brkToken');
+    const tok = sessionStorage.getItem('bo_token');
     const btn = document.getElementById('meta-lanc-salvar');
     if (btn) { btn.disabled = true; btn.textContent = 'Salvando…'; }
 
@@ -508,7 +508,7 @@
     const header = lines[0].toLowerCase();
     const hasHeader = header.includes('assessor') || header.includes('meta');
     const dataLines = hasHeader ? lines.slice(1) : lines;
-    const tok = localStorage.getItem('brkToken');
+    const tok = sessionStorage.getItem('bo_token');
     let ok = 0, err = 0, skip = 0;
     const statusEl = document.getElementById('metas-import-status');
     if (statusEl) { statusEl.textContent = 'Importando…'; statusEl.className = 'import-status'; statusEl.style.display = 'inline'; }
