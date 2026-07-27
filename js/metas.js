@@ -1,12 +1,27 @@
-// ─── METAS MODULE v2 ─────────────────────────────────────────────────────────
+// ─── METAS MODULE v3 — chave por COD AAI ─────────────────────────────────────
 (function () {
   'use strict';
 
   const API = window.BROKER_API || 'https://broker-one-backend-production-90c9.up.railway.app';
 
-  let _metasList = [];      // todas as metas do backend
-  let _expanded  = new Set(); // períodos expandidos
-  let _selected  = new Set(); // IDs selecionados (checkboxes)
+  let _metasList = [];
+  let _expanded  = new Set();
+  let _selected  = new Set();
+
+  // ─── helpers de lookup na Parametrização ──────────────────────────────────
+  // Retorna { codNomeMap, codBrokerMap } — chave = cod_aai (string)
+  function buildParamMaps() {
+    const paramData = window.getParamData ? window.getParamData() : [];
+    const codNomeMap   = {};   // "1910" → "VIVIANE MAIA DE SOUZA FERNANDES"
+    const codBrokerMap = {};   // "1910" → "Thiago Antinori"
+    paramData.forEach(p => {
+      const cod = String(p.cod_aai || p.codAai || p.cod || '').trim();
+      if (!cod) return;
+      codNomeMap[cod]   = p.assessor || p.nome || p.name || cod;
+      codBrokerMap[cod] = p.broker_nome || p.broker || '—';
+    });
+    return { codNomeMap, codBrokerMap };
+  }
 
   // ─── INIT ─────────────────────────────────────────────────────────────────
   window.loadMetas = async function () {
@@ -35,7 +50,6 @@
       map[key].total += (m.meta_rv || m.valor_meta || 0);
       map[key].metas.push(m);
     });
-    // ordenar: mais recente primeiro
     return Object.values(map).sort((a, b) => {
       const ka = `${a.mes}${a.semestre}`, kb = `${b.mes}${b.semestre}`;
       return kb.localeCompare(ka);
@@ -53,20 +67,14 @@
       return;
     }
 
-    // construir param lookup: nome assessor → broker
-    const paramData = window.getParamData ? window.getParamData() : [];
-    const brokerMap = {};
-    paramData.forEach(p => {
-      const nome = p.nome || p.name || p.assessor || '';
-      brokerMap[nome] = p.broker_nome || p.broker || '—';
-    });
+    const { codNomeMap, codBrokerMap } = buildParamMaps();
 
     let html = '';
     periodos.forEach(p => {
-      const key = `${p.semestre}||${p.mes}`;
+      const key    = `${p.semestre}||${p.mes}`;
       const isOpen = _expanded.has(key);
-      const periodLabel = `${p.semestre} · ${labelMes(p.mes)}`;
-      const count = p.metas.length;
+      const label  = `${p.semestre} · ${labelMes(p.mes)}`;
+      const count  = p.metas.length;
       const allIds = p.metas.map(m => m.id);
 
       html += `
@@ -79,7 +87,7 @@
             <span class="expand-icon">${isOpen ? '▾' : '▸'}</span>
           </td>
           <td class="td-periodo" onclick="togglePeriodo('${escAttr(key)}')">
-            <span class="period-label">${escHtml(periodLabel)}</span>
+            <span class="period-label">${escHtml(label)}</span>
             <span class="period-count">${count} assessor${count !== 1 ? 'es' : ''}</span>
           </td>
           <td class="td-sem"><span class="chip-smt">${escHtml(p.semestre)}</span></td>
@@ -88,33 +96,37 @@
             <button class="btn-icon btn-edit-periodo" title="Editar período"
               onclick="abrirEdicaoPeriodo('${escAttr(key)}')">✎</button>
             <button class="btn-icon btn-del-periodo" title="Excluir período"
-              onclick="confirmarExcluirPeriodo('${escAttr(key)}', '${escAttr(periodLabel)}')">✕</button>
+              onclick="confirmarExcluirPeriodo('${escAttr(key)}', '${escAttr(label)}')">✕</button>
           </td>
         </tr>`;
 
       if (isOpen) {
-        // sub-linhas de assessores
         const sorted = [...p.metas].sort((a, b) => {
-          const ba = brokerMap[a.assessor] || '', bb = brokerMap[b.assessor] || '';
-          return ba.localeCompare(bb) || a.assessor.localeCompare(b.assessor);
+          const ba = codBrokerMap[a.assessor] || '', bb = codBrokerMap[b.assessor] || '';
+          return ba.localeCompare(bb) || (a.assessor || '').localeCompare(b.assessor || '');
         });
         sorted.forEach(m => {
-          const broker = brokerMap[m.assessor] || '—';
-          const chkd = _selected.has(m.id) ? 'checked' : '';
+          const cod    = m.assessor || '';
+          const nome   = codNomeMap[cod]   || cod;
+          const broker = codBrokerMap[cod] || '—';
+          const chkd   = _selected.has(m.id) ? 'checked' : '';
           html += `
             <tr class="row-assessor" data-id="${m.id}">
               <td class="td-chk">
                 <input type="checkbox" class="chk-meta" data-id="${m.id}" ${chkd}>
               </td>
               <td></td>
-              <td class="td-assessor-nome">${escHtml(m.assessor)}</td>
+              <td class="td-assessor-nome">
+                <span class="nome-aai">${escHtml(nome)}</span>
+                <span class="cod-aai">${escHtml(cod)}</span>
+              </td>
               <td class="td-broker-nome">${escHtml(broker)}</td>
               <td class="td-meta-ind">${fmtBRL(m.meta_rv || m.valor_meta || 0)}</td>
               <td class="td-acoes">
                 <button class="btn-icon btn-edit-meta" title="Editar meta"
                   onclick="abrirEdicaoMeta(${m.id})">✎</button>
                 <button class="btn-icon btn-del-meta" title="Excluir meta"
-                  onclick="confirmarExcluirMeta(${m.id}, '${escAttr(m.assessor)}')">✕</button>
+                  onclick="confirmarExcluirMeta(${m.id}, '${escAttr(nome)}')">✕</button>
               </td>
             </tr>`;
         });
@@ -123,7 +135,6 @@
 
     tbody.innerHTML = html;
 
-    // rebind checkboxes
     tbody.querySelectorAll('.chk-meta').forEach(chk => {
       chk.addEventListener('change', function () {
         const id = parseInt(this.dataset.id);
@@ -139,17 +150,15 @@
         renderPeriodos();
       });
     });
-
     updateBatchBar();
   }
 
-  // ─── TOGGLE EXPAND ────────────────────────────────────────────────────────
   window.togglePeriodo = function (key) {
     _expanded.has(key) ? _expanded.delete(key) : _expanded.add(key);
     renderPeriodos();
   };
 
-  // ─── BARRA DE AÇÕES EM LOTE ───────────────────────────────────────────────
+  // ─── BATCH BAR ────────────────────────────────────────────────────────────
   function updateBatchBar() {
     const bar = document.getElementById('metas-batch-bar');
     const cnt = document.getElementById('metas-batch-count');
@@ -162,10 +171,7 @@
     }
   }
 
-  window.limparSelecao = function () {
-    _selected.clear();
-    renderPeriodos();
-  };
+  window.limparSelecao = function () { _selected.clear(); renderPeriodos(); };
 
   window.excluirLoteSelecionados = async function () {
     if (_selected.size === 0) return;
@@ -176,47 +182,16 @@
     if (conf) conf.style.display = 'flex';
   };
 
-  // ─── EDITAR PERÍODO (abre modal com todos assessores do período) ───────────
+  // ─── EDITAR PERÍODO ───────────────────────────────────────────────────────
   window.abrirEdicaoPeriodo = function (key) {
     const periodos = getPeriodos();
     const p = periodos.find(x => `${x.semestre}||${x.mes}` === key);
     if (!p) return;
-
-    const paramData = window.getParamData ? window.getParamData() : [];
-    const brokerMap = {};
-    paramData.forEach(x => { brokerMap[x.nome || x.name || x.assessor || ''] = x.broker_nome || x.broker || '—'; });
-
+    const { codNomeMap, codBrokerMap } = buildParamMaps();
     const title = document.getElementById('meta-lanc-title');
     if (title) title.textContent = `Editar — ${p.semestre} · ${labelMes(p.mes)}`;
-
-    // montar sessão a partir das metas existentes
-    window._editSessao = { periodo: key, semestre: p.semestre, mes: p.mes, metas: p.metas, brokerMap };
-
-    const tbody = document.getElementById('meta-lanc-tbody');
-    if (!tbody) return;
-
-    const sorted = [...p.metas].sort((a, b) => {
-      const ba = brokerMap[a.assessor] || '', bb = brokerMap[b.assessor] || '';
-      return ba.localeCompare(bb) || a.assessor.localeCompare(b.assessor);
-    });
-
-    tbody.innerHTML = sorted.map((m, i) => {
-      const broker = brokerMap[m.assessor] || '—';
-      return `
-        <tr>
-          <td class="td-aai">${escHtml(m.assessor)}</td>
-          <td class="td-broker-sub">${escHtml(broker)}</td>
-          <td>
-            <input type="text" class="meta-val-inp"
-              id="meta-inp-${m.id}"
-              value="${fmtBRL(m.meta_rv || m.valor_meta || 0)}"
-              oninput="maskMetaInp(this)"
-              data-id="${m.id}"
-            />
-          </td>
-        </tr>`;
-    }).join('');
-
+    window._editSessao = { tipo: 'periodo', metas: p.metas };
+    _renderLancTbody(p.metas, codNomeMap, codBrokerMap);
     const ov = document.getElementById('meta-lanc-overlay');
     if (ov) ov.style.display = 'flex';
     const msg = document.getElementById('meta-lanc-msg');
@@ -227,52 +202,69 @@
   window.abrirEdicaoMeta = function (id) {
     const m = _metasList.find(x => x.id === id);
     if (!m) return;
-
-    const paramData = window.getParamData ? window.getParamData() : [];
-    const brokerMap = {};
-    paramData.forEach(x => { brokerMap[x.nome || x.name || x.assessor || ''] = x.broker_nome || x.broker || '—'; });
-    const broker = brokerMap[m.assessor] || '—';
-
+    const { codNomeMap, codBrokerMap } = buildParamMaps();
+    const nome = codNomeMap[m.assessor] || m.assessor;
     const title = document.getElementById('meta-lanc-title');
-    if (title) title.textContent = `Editar — ${escHtml(m.assessor)}`;
-
+    if (title) title.textContent = `Editar — ${escHtml(nome)}`;
     window._editSessao = { tipo: 'individual', metas: [m] };
-
-    const tbody = document.getElementById('meta-lanc-tbody');
-    if (tbody) {
-      tbody.innerHTML = `
-        <tr>
-          <td class="td-aai">${escHtml(m.assessor)}</td>
-          <td class="td-broker-sub">${escHtml(broker)}</td>
-          <td>
-            <input type="text" class="meta-val-inp"
-              id="meta-inp-${m.id}"
-              value="${fmtBRL(m.meta_rv || m.valor_meta || 0)}"
-              oninput="maskMetaInp(this)"
-              data-id="${m.id}"
-            />
-          </td>
-        </tr>`;
-    }
-
+    _renderLancTbody([m], codNomeMap, codBrokerMap);
     const ov = document.getElementById('meta-lanc-overlay');
     if (ov) ov.style.display = 'flex';
     const msg = document.getElementById('meta-lanc-msg');
     if (msg) msg.style.display = 'none';
   };
 
+  function _renderLancTbody(metas, codNomeMap, codBrokerMap) {
+    const tbody = document.getElementById('meta-lanc-tbody');
+    if (!tbody) return;
+    const sorted = [...metas].sort((a, b) => {
+      const ba = codBrokerMap[a.assessor] || '', bb = codBrokerMap[b.assessor] || '';
+      return ba.localeCompare(bb) || (a.assessor || '').localeCompare(b.assessor || '');
+    });
+    tbody.innerHTML = sorted.map(m => {
+      const cod    = m.assessor || '';
+      const nome   = codNomeMap[cod]   || cod;
+      const broker = codBrokerMap[cod] || '—';
+      return `
+        <tr>
+          <td class="td-aai">
+            <span class="nome-aai">${escHtml(nome)}</span>
+            <span class="cod-aai">${escHtml(cod)}</span>
+          </td>
+          <td class="td-broker-sub">${escHtml(broker)}</td>
+          <td>
+            <input type="text" class="meta-val-inp"
+              id="meta-inp-${m.id}"
+              data-id="${m.id}"
+              value="${fmtBRL(m.meta_rv || m.valor_meta || 0)}"
+              oninput="maskMetaInp(this)"
+            />
+          </td>
+        </tr>`;
+    }).join('');
+  }
+
   // ─── SALVAR EDIÇÃO ────────────────────────────────────────────────────────
+  window.fecharModalLanc = function () {
+    const ov = document.getElementById('meta-lanc-overlay');
+    if (ov) ov.style.display = 'none';
+    window._editSessao = null;
+  };
+
   window.salvarSessaoMetas = async function () {
     const sess = window._editSessao;
     if (!sess) return;
-    const tok = sessionStorage.getItem('bo_token');
+
+    // Sessão nova — usa inputs por assessor cod + data-id ou data-assessor
+    if (sess._nova) { await _salvarNovaSessao(); return; }
+
+    // Edição de período ou individual
+    const tok = localStorage.getItem('brkToken') || sessionStorage.getItem('bo_token');
     const btn = document.getElementById('meta-lanc-salvar');
     if (btn) { btn.disabled = true; btn.textContent = 'Salvando…'; }
-
     let ok = 0, err = 0;
-    const metas = sess.metas || [];
 
-    for (const m of metas) {
+    for (const m of (sess.metas || [])) {
       const inp = document.getElementById(`meta-inp-${m.id}`);
       if (!inp) continue;
       const raw = inp.value.replace(/[^\d,]/g, '').replace(',', '.');
@@ -280,30 +272,63 @@
       try {
         const r = await fetch(`${API}/api/metas/${m.id}`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` },
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionStorage.getItem('bo_token')}` },
           body: JSON.stringify({ meta_rv: val, valor_meta: val })
         });
         r.ok ? ok++ : err++;
       } catch { err++; }
     }
-
     if (btn) { btn.disabled = false; btn.textContent = 'Salvar'; }
-    const msg = document.getElementById('meta-lanc-msg');
-    if (msg) {
-      msg.textContent = err === 0 ? `✓ ${ok} meta${ok !== 1 ? 's' : ''} salva${ok !== 1 ? 's' : ''}!` : `${ok} salvas, ${err} com erro.`;
-      msg.className = err === 0 ? 'lanc-msg ok' : 'lanc-msg err';
-      msg.style.display = 'block';
-    }
-    await fetchMetas();
-    renderPeriodos();
+    _showLancMsg(ok, err);
+    await fetchMetas(); renderPeriodos();
     if (err === 0) setTimeout(fecharModalLanc, 1200);
   };
 
-  window.fecharModalLanc = function () {
-    const ov = document.getElementById('meta-lanc-overlay');
-    if (ov) ov.style.display = 'none';
-    window._editSessao = null;
-  };
+  async function _salvarNovaSessao() {
+    const sess = window._editSessao;
+    const tok  = sessionStorage.getItem('bo_token');
+    const btn  = document.getElementById('meta-lanc-salvar');
+    if (btn) { btn.disabled = true; btn.textContent = 'Salvando…'; }
+    const inps = document.querySelectorAll('#meta-lanc-tbody .meta-val-inp');
+    let ok = 0, err = 0;
+    for (const inp of inps) {
+      const raw      = inp.value.replace(/[^\d,]/g, '').replace(',', '.');
+      const val      = parseFloat(raw) || 0;
+      const id       = inp.dataset.id;
+      const assessor = inp.dataset.assessor; // cod_aai
+      try {
+        let r;
+        if (id) {
+          r = await fetch(`${API}/api/metas/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` },
+            body: JSON.stringify({ meta_rv: val, valor_meta: val })
+          });
+        } else {
+          r = await fetch(`${API}/api/metas/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` },
+            body: JSON.stringify({ assessor, semestre: sess.semestre, mes: sess.mes, meta_rv: val, valor_meta: val })
+          });
+        }
+        r.ok ? ok++ : err++;
+      } catch { err++; }
+    }
+    if (btn) { btn.disabled = false; btn.textContent = 'Salvar'; }
+    _showLancMsg(ok, err);
+    await fetchMetas(); renderPeriodos();
+    if (err === 0) setTimeout(fecharModalLanc, 1200);
+  }
+
+  function _showLancMsg(ok, err) {
+    const msg = document.getElementById('meta-lanc-msg');
+    if (!msg) return;
+    msg.textContent = err === 0
+      ? `✓ ${ok} meta${ok !== 1 ? 's' : ''} salva${ok !== 1 ? 's' : ''}!`
+      : `${ok} salvas, ${err} com erro.`;
+    msg.className  = err === 0 ? 'lanc-msg ok' : 'lanc-msg err';
+    msg.style.display = 'block';
+  }
 
   // ─── CONFIRMAR / EXCLUIR ──────────────────────────────────────────────────
   let _pendingDelete = null;
@@ -320,10 +345,10 @@
     if (conf) conf.style.display = 'flex';
   };
 
-  window.confirmarExcluirMeta = function (id, assessor) {
+  window.confirmarExcluirMeta = function (id, nome) {
     const conf = document.getElementById('metas-conf-overlay');
     const msg  = document.getElementById('metas-conf-msg');
-    if (msg) msg.textContent = `Excluir a meta de "${assessor}"? Esta ação não pode ser desfeita.`;
+    if (msg) msg.textContent = `Excluir a meta de "${nome}"? Esta ação não pode ser desfeita.`;
     _pendingDelete = { type: 'individual', ids: [id] };
     if (conf) conf.style.display = 'flex';
   };
@@ -339,7 +364,6 @@
     const tok = sessionStorage.getItem('bo_token');
     const btn = document.getElementById('metas-conf-ok');
     if (btn) { btn.disabled = true; btn.textContent = 'Excluindo…'; }
-
     for (const id of _pendingDelete.ids) {
       try {
         await fetch(`${API}/api/metas/${id}`, {
@@ -349,14 +373,13 @@
         _selected.delete(id);
       } catch (e) { console.warn('Erro ao excluir meta', id, e); }
     }
-
     if (btn) { btn.disabled = false; btn.textContent = 'Excluir'; }
     fecharConfirmacao();
     await fetchMetas();
     renderPeriodos();
   };
 
-  // ─── MODAL NOVA META (passo 1 → passo 2) ─────────────────────────────────
+  // ─── MODAL NOVA META ──────────────────────────────────────────────────────
   function abrirModalSessao() {
     const now = new Date();
     const selMes = document.getElementById('sess-mes');
@@ -384,7 +407,7 @@
     const mesStr = `${ano}-${mes}`;
 
     const paramData = window.getParamData ? window.getParamData() : [];
-    const user = window.currentUser || JSON.parse(localStorage.getItem('brkUser') || '{}');
+    const user = window.currentUser || JSON.parse(sessionStorage.getItem('bo_user') || '{}');
     let assessores = paramData;
     if (user.nivel === 1) {
       assessores = paramData.filter(p => p.broker === user.username || p.broker_nome === user.name);
@@ -394,24 +417,24 @@
       return;
     }
 
+    const { codNomeMap, codBrokerMap } = buildParamMaps();
+
+    // chave = cod_aai
     const existentes = {};
     _metasList.forEach(m => {
       if (m.semestre === semStr && m.mes === mesStr) existentes[m.assessor] = m;
     });
 
-    const brokerMap = {};
-    paramData.forEach(p => { brokerMap[p.nome || p.name || p.assessor || ''] = p.broker_nome || p.broker || '—'; });
-
-    // montar sessão: metas existentes vêm com id, novas sem id
     const metasParaEditar = assessores.map(p => {
-      const nome = p.nome || p.name || p.assessor || '';
-      const exist = existentes[nome];
+      const cod  = String(p.cod_aai || p.codAai || p.cod || '').trim();
+      const nome = p.assessor || p.nome || p.name || cod;
+      const exist = existentes[cod];
       return exist
         ? { ...exist }
-        : { id: null, assessor: nome, semestre: semStr, mes: mesStr, meta_rv: 0, valor_meta: 0 };
+        : { id: null, assessor: cod, nome, semestre: semStr, mes: mesStr, meta_rv: 0, valor_meta: 0 };
     });
 
-    window._editSessao = { tipo: 'nova', semestre: semStr, mes: mesStr, metas: metasParaEditar, brokerMap };
+    window._editSessao = { _nova: true, tipo: 'nova', semestre: semStr, mes: mesStr, metas: metasParaEditar };
 
     const title = document.getElementById('meta-lanc-title');
     if (title) title.textContent = `Metas RV — ${labelMes(mesStr)} / ${semStr}`;
@@ -419,24 +442,32 @@
     const tbody = document.getElementById('meta-lanc-tbody');
     if (tbody) {
       const sorted = [...metasParaEditar].sort((a, b) => {
-        const ba = brokerMap[a.assessor] || '', bb = brokerMap[b.assessor] || '';
-        return ba.localeCompare(bb) || a.assessor.localeCompare(b.assessor);
+        const ba = codBrokerMap[a.assessor] || '', bb = codBrokerMap[b.assessor] || '';
+        return ba.localeCompare(bb) || (a.assessor || '').localeCompare(b.assessor || '');
       });
-      tbody.innerHTML = sorted.map(m => `
-        <tr>
-          <td class="td-aai">${escHtml(m.assessor)}</td>
-          <td class="td-broker-sub">${escHtml(brokerMap[m.assessor] || '—')}</td>
-          <td>
-            <input type="text" class="meta-val-inp"
-              id="meta-inp-${m.id || 'new_' + m.assessor.replace(/\s/g,'_')}"
-              data-id="${m.id || ''}"
-              data-assessor="${escAttr(m.assessor)}"
-              value="${m.meta_rv || m.valor_meta ? fmtBRL(m.meta_rv || m.valor_meta) : ''}"
-              placeholder="R$ 0,00"
-              oninput="maskMetaInp(this)"
-            />
-          </td>
-        </tr>`).join('');
+      tbody.innerHTML = sorted.map(m => {
+        const cod    = m.assessor || '';
+        const nome   = codNomeMap[cod] || m.nome || cod;
+        const broker = codBrokerMap[cod] || '—';
+        return `
+          <tr>
+            <td class="td-aai">
+              <span class="nome-aai">${escHtml(nome)}</span>
+              <span class="cod-aai">${escHtml(cod)}</span>
+            </td>
+            <td class="td-broker-sub">${escHtml(broker)}</td>
+            <td>
+              <input type="text" class="meta-val-inp"
+                id="meta-inp-${m.id || 'new_' + cod}"
+                data-id="${m.id || ''}"
+                data-assessor="${escAttr(cod)}"
+                value="${(m.meta_rv || m.valor_meta) ? fmtBRL(m.meta_rv || m.valor_meta) : ''}"
+                placeholder="R$ 0,00"
+                oninput="maskMetaInp(this)"
+              />
+            </td>
+          </tr>`;
+      }).join('');
     }
 
     fecharModalSessao();
@@ -444,61 +475,9 @@
     if (ov) ov.style.display = 'flex';
     const msg = document.getElementById('meta-lanc-msg');
     if (msg) msg.style.display = 'none';
-    // Override salvar para lidar com criação + atualização
-    window._editSessao._nova = true;
   };
 
-  // Override salvar para sessão nova (cria + atualiza)
-  const _origSalvar = window.salvarSessaoMetas;
-  window.salvarSessaoMetas = async function () {
-    const sess = window._editSessao;
-    if (!sess) return;
-    if (!sess._nova) return _origSalvar();
-
-    const tok = sessionStorage.getItem('bo_token');
-    const btn = document.getElementById('meta-lanc-salvar');
-    if (btn) { btn.disabled = true; btn.textContent = 'Salvando…'; }
-
-    const inps = document.querySelectorAll('#meta-lanc-tbody .meta-val-inp');
-    let ok = 0, err = 0;
-
-    for (const inp of inps) {
-      const raw = inp.value.replace(/[^\d,]/g, '').replace(',', '.');
-      const val = parseFloat(raw) || 0;
-      const id = inp.dataset.id;
-      const assessor = inp.dataset.assessor;
-      try {
-        let r;
-        if (id) {
-          r = await fetch(`${API}/api/metas/${id}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` },
-            body: JSON.stringify({ meta_rv: val, valor_meta: val })
-          });
-        } else {
-          r = await fetch(`${API}/api/metas/`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` },
-            body: JSON.stringify({ assessor, semestre: sess.semestre, mes: sess.mes, meta_rv: val, valor_meta: val })
-          });
-        }
-        r.ok ? ok++ : err++;
-      } catch { err++; }
-    }
-
-    if (btn) { btn.disabled = false; btn.textContent = 'Salvar'; }
-    const msg = document.getElementById('meta-lanc-msg');
-    if (msg) {
-      msg.textContent = err === 0 ? `✓ ${ok} meta${ok !== 1 ? 's' : ''} salva${ok !== 1 ? 's' : ''}!` : `${ok} salvas, ${err} com erro.`;
-      msg.className = err === 0 ? 'lanc-msg ok' : 'lanc-msg err';
-      msg.style.display = 'block';
-    }
-    await fetchMetas();
-    renderPeriodos();
-    if (err === 0) setTimeout(fecharModalLanc, 1200);
-  };
-
-  // ─── CSV IMPORT ───────────────────────────────────────────────────────────
+  // ─── CSV IMPORT — aceita COD AAI na coluna 1 ─────────────────────────────
   async function handleCsvImport(e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -506,27 +485,38 @@
 
     const buf  = await file.arrayBuffer();
     const raw  = new TextDecoder('utf-8').decode(buf);
-    const text = raw.replace(/^\uFEFF/, '');
+    const text = raw.replace(/^\uFEFF/, ''); // remove BOM Excel
     const lines = text.split(/\r?\n/);
 
     const firstLine = lines[0].toLowerCase();
-    const hasHeader = firstLine.includes('assessor') || firstLine.includes('meta') || firstLine.includes('m\u00eas');
+    const hasHeader = firstLine.includes('cod') || firstLine.includes('assessor') || firstLine.includes('meta');
     const dataLines = hasHeader ? lines.slice(1) : lines;
 
     const tok = sessionStorage.getItem('bo_token');
     let ok = 0, err = 0, skip = 0;
     const statusEl = document.getElementById('metas-import-status');
-    if (statusEl) { statusEl.textContent = 'Importando\u2026'; statusEl.className = 'import-status'; statusEl.style.display = 'inline'; }
+    if (statusEl) { statusEl.textContent = 'Importando…'; statusEl.className = 'import-status'; statusEl.style.display = 'inline'; }
 
     for (const line of dataLines) {
       if (!line.trim()) continue;
       const cols = parseCsvLine(line);
       if (cols.length < 4) { skip++; continue; }
       const clean = cols.map(c => c.replace(/\r/g, '').replace(/^"|"$/g, '').trim());
-      const [assessor, semestre, mes, metaRaw] = clean;
-      if (!assessor || !semestre || !mes) { skip++; continue; }
+      const [codAai, semestre, mes, metaRaw] = clean;
+
+      // ignorar linhas sem código
+      if (!codAai || !semestre || !mes) { skip++; continue; }
+
+      // valor: aceita decimal com vírgula ou ponto
       const meta_rv = parseFloat(metaRaw.replace(/\./g, '').replace(',', '.')) || 0;
-      const exist = _metasList.find(m => m.assessor === assessor && m.semestre === semestre && m.mes === mes);
+
+      // assessor = cod_aai (string)
+      const assessor = codAai;
+
+      const exist = _metasList.find(m =>
+        m.assessor === assessor && m.semestre === semestre && m.mes === mes
+      );
+
       try {
         let r;
         if (exist) {
@@ -544,14 +534,14 @@
         }
         if (r.ok) { ok++; } else {
           const body = await r.text();
-          console.warn(`Metas CSV erro ${r.status} \u2014 ${assessor}:`, body);
+          console.warn(`Metas CSV erro ${r.status} — cod ${codAai}:`, body);
           err++;
         }
       } catch (ex) { console.warn('Metas CSV:', ex); err++; }
     }
 
     if (statusEl) {
-      statusEl.textContent = `\u2713 ${ok} importadas${err ? `, ${err} erros` : ''}${skip ? `, ${skip} ignoradas` : ''}`;
+      statusEl.textContent = `✓ ${ok} importadas${err ? `, ${err} erros` : ''}${skip ? `, ${skip} ignoradas` : ''}`;
       statusEl.className = err > 0 ? 'import-status err' : 'import-status ok';
       setTimeout(() => { statusEl.style.display = 'none'; }, 5000);
     }
@@ -604,12 +594,12 @@
   function labelMes(mesStr) {
     if (!mesStr) return mesStr;
     const [ano, m] = mesStr.split('-');
-    return `${MESES[(parseInt(m,10)-1)] || m}/${ano}`;
+    return `${MESES[(parseInt(m, 10) - 1)] || m}/${ano}`;
   }
   function fmtBRL(v) {
     return 'R$ ' + Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
-  function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-  function escAttr(s) { return String(s||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+  function escHtml(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function escAttr(s) { return String(s || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
 
 })();
