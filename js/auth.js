@@ -390,39 +390,109 @@ async function adminLoadUsers() {
   }
 }
 
+
+// ══════════════════════════════════════════════════════════════
+// GERENCIAR USUARIOS (painel admin)
+// ══════════════════════════════════════════════════════════════
+
+var _admUsers = [];
+var _admEditingUserId = null;
+
+function openAdminPanel() {
+  var overlay = document.getElementById('adm-overlay');
+  if (!overlay) { console.error('adm-overlay nao encontrado no HTML'); return; }
+  overlay.style.display = 'flex';
+  adminLoadUsers();
+}
+
+function closeAdminPanel() {
+  var overlay = document.getElementById('adm-overlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
+async function adminLoadUsers() {
+  var listEl = document.getElementById('adm-user-list');
+  if (!listEl) return;
+  listEl.innerHTML = '<div style="padding:24px;text-align:center;color:#6B7685;font-size:13px;">Carregando...</div>';
+  try {
+    var res = await fetch(API_BASE + '/api/users/', { headers: apiHeaders() });
+    if (!res.ok) {
+      var d = await res.json().catch(function(){return{};});
+      throw new Error(d.detail || 'Erro ' + res.status);
+    }
+    _admUsers = await res.json();
+    renderAdmUserList();
+  } catch(e) {
+    listEl.innerHTML = '<div style="padding:24px;text-align:center;color:#fca5a5;font-size:13px;">Erro ao carregar: ' + e.message + '</div>';
+  }
+}
+
 function renderAdmUserList() {
   var listEl = document.getElementById('adm-user-list');
   if (!listEl) return;
-  var nivelLabels = {1:'Broker',2:'Assessor',3:'Analista',4:'Líder de Squad',5:'Admin'};
+
+  var nivelLabels = {1:'Broker',2:'Assessor',3:'Analista',4:'Lider de Squad',5:'Admin'};
   var nivelColors = {1:'#6B7685',2:'#3b82f6',3:'#8b5cf6',4:'#f59e0b',5:'#E05A3A'};
 
   if (!_admUsers.length) {
-    listEl.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-3);font-size:13px;">Nenhum usuário cadastrado.</div>';
+    listEl.innerHTML = '<div style="padding:24px;text-align:center;color:#6B7685;font-size:13px;">Nenhum usuario cadastrado.</div>';
     return;
   }
 
   var html = '<div style="display:flex;flex-direction:column;gap:8px;">';
   _admUsers.forEach(function(u) {
-    var nome = u.name || u.full_name || u.username || '—';
+    var nome = u.name || u.full_name || u.username || 'Usuario';
     var initials = nome.split(' ').map(function(p){return p[0]||'';}).slice(0,2).join('').toUpperCase();
-    var nivelLabel = nivelLabels[u.nivel] || ('Nível '+u.nivel);
+    var nivelLabel = nivelLabels[u.nivel] || ('Nivel ' + u.nivel);
     var nivelColor = nivelColors[u.nivel] || '#6B7685';
-    var isSelf = (currentUser && (u.id === currentUser.id));
-    html += '<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--bg-card-2,#161B22);border:1px solid var(--border,#252C35);border-radius:10px;">';
-    // Avatar inicial
-    html += '<div style="width:36px;height:36px;border-radius:50%;background:'+nivelColor+';display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;flex-shrink:0;font-family:var(--font-mono);">'+escHtml(initials)+'</div>';
+    var isSelf = (currentUser && u.id === currentUser.id);
+
+    html += '<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;'
+          + 'background:#161B22;border:1px solid #252C35;border-radius:10px;">';
+
+    // Avatar
+    html += '<div style="width:38px;height:38px;border-radius:50%;background:' + nivelColor + ';'
+          + 'display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;'
+          + 'color:#fff;flex-shrink:0;">' + escHtml(initials) + '</div>';
+
     // Info
     html += '<div style="flex:1;min-width:0;">';
-    html += '<div style="font-size:13px;font-weight:700;color:var(--text,#E8EBF0);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escHtml(nome)+(isSelf?' <span style="font-size:10px;color:var(--coral,#E05A3A);font-weight:600;">(você)</span>':'')+'</div>';
-    html += '<div style="font-size:11px;color:var(--text-3,#6B7685);margin-top:2px;">@'+escHtml(u.username)+'</div>';
-    html += '<div style="margin-top:4px;"><span style="font-size:10px;font-weight:700;color:'+nivelColor+';background:'+nivelColor+'22;padding:2px 8px;border-radius:100px;font-family:var(--font-mono);">'+escHtml(nivelLabel)+'</span></div>';
+    html += '<div style="font-size:13px;font-weight:700;color:#E8EBF0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'
+          + escHtml(nome)
+          + (isSelf ? ' <span style="font-size:10px;color:#E05A3A;font-weight:600;">(voce)</span>' : '')
+          + '</div>';
+    html += '<div style="font-size:11px;color:#6B7685;margin-top:2px;">@' + escHtml(u.username);
+    if (u.broker_vinculado) html += ' <span style="color:#4b5563;">&#8594; ' + escHtml(u.broker_vinculado) + '</span>';
     html += '</div>';
-    // Botões
-    html += '<div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">';
-    html += '<button onclick="admEditUser('+u.id+')" style="font-size:11px;font-weight:600;padding:5px 10px;border-radius:6px;border:1px solid var(--border,#252C35);background:transparent;color:var(--text,#E8EBF0);cursor:pointer;" title="Editar">✏️ Editar</button>';
+    html += '<div style="margin-top:5px;display:flex;gap:5px;flex-wrap:wrap;">';
+    html += '<span style="font-size:10px;font-weight:700;color:' + nivelColor + ';background:' + nivelColor + '22;'
+          + 'padding:2px 8px;border-radius:100px;">' + escHtml(nivelLabel) + '</span>';
+    if (u.ativo === false) {
+      html += '<span style="font-size:10px;font-weight:700;color:#fca5a5;background:rgba(239,68,68,.12);'
+            + 'padding:2px 8px;border-radius:100px;">Inativo</span>';
+    }
+    html += '</div>';
+    html += '</div>';
+
+    // Botoes
+    html += '<div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0;">';
+    html += '<button onclick="admEditUser(' + u.id + ')" '
+          + 'style="font-size:11px;font-weight:600;padding:5px 11px;border-radius:6px;'
+          + 'border:1px solid #252C35;background:transparent;color:#E8EBF0;cursor:pointer;">'
+          + 'Editar</button>';
     if (!isSelf) {
-      html += '<button onclick="admResetSenha('+u.id+',\''+escHtml(nome)+'\')" style="font-size:11px;font-weight:600;padding:5px 10px;border-radius:6px;border:1px solid #5b3340;background:transparent;color:#fca5a5;cursor:pointer;" title="Resetar senha">🔑 Senha</button>';
-      html += '<button onclick="admDeleteUser('+u.id+',\''+escHtml(nome)+'\')" style="font-size:11px;font-weight:600;padding:5px 10px;border-radius:6px;border:1px solid #5b3340;background:transparent;color:#fca5a5;cursor:pointer;" title="Excluir">🗑 Excluir</button>';
+      html += '<button onclick="admImpersonate(' + u.id + ')" '
+            + 'style="font-size:11px;font-weight:600;padding:5px 11px;border-radius:6px;'
+            + 'border:1px solid #1e3a5f;background:transparent;color:#60a5fa;cursor:pointer;">'
+            + 'Ver como</button>';
+      html += '<button onclick="admResetSenha(' + u.id + ',\'' + escHtml(nome) + '\')" '
+            + 'style="font-size:11px;font-weight:600;padding:5px 11px;border-radius:6px;'
+            + 'border:1px solid #3a2020;background:transparent;color:#fca5a5;cursor:pointer;">'
+            + 'Senha</button>';
+      html += '<button onclick="admDeleteUser(' + u.id + ',\'' + escHtml(nome) + '\')" '
+            + 'style="font-size:11px;font-weight:600;padding:5px 11px;border-radius:6px;'
+            + 'border:1px solid #3a2020;background:transparent;color:#fca5a5;cursor:pointer;">'
+            + 'Excluir</button>';
     }
     html += '</div>';
     html += '</div>';
@@ -431,37 +501,42 @@ function renderAdmUserList() {
   listEl.innerHTML = html;
 }
 
-// ── Abrir modal de novo usuário ──
+// Novo usuario
 async function openNewUserModal() {
   _admEditingUserId = null;
   var titleEl = document.getElementById('adm-user-modal-title');
-  if (titleEl) titleEl.textContent = 'Novo Usuário';
-  // limpar campos
+  if (titleEl) titleEl.textContent = 'Novo Usuario';
+
   ['adm-u-name','adm-u-username','adm-u-email','adm-u-senha'].forEach(function(id){
     var el = document.getElementById(id); if (el) el.value = '';
   });
   var nivelEl = document.getElementById('adm-u-nivel');
   if (nivelEl) nivelEl.value = '1';
-  var brokerEl = document.getElementById('adm-u-broker');
-  if (brokerEl) { await _admPopulateBrokerSelect(''); }
-  var pwdWrap = document.getElementById('adm-u-senha-wrap');
-  if (pwdWrap) pwdWrap.style.display = '';
-  var msgEl = document.getElementById('adm-u-msg');
-  if (msgEl) { msgEl.style.display = 'none'; msgEl.textContent = ''; }
+
+  var pwdEl = document.getElementById('adm-u-senha');
+  if (pwdEl) pwdEl.placeholder = 'Minimo 4 caracteres';
+
   var delBtn = document.getElementById('adm-u-delete-btn');
   if (delBtn) delBtn.style.display = 'none';
+
+  var msgEl = document.getElementById('adm-u-msg');
+  if (msgEl) { msgEl.style.display = 'none'; msgEl.textContent = ''; }
+
+  await _admPopulateBrokerSelect('');
+
   var overlay = document.getElementById('adm-user-modal');
   if (overlay) overlay.style.display = 'flex';
 }
 
-var _admEditingUserId = null;
-
+// Editar usuario existente
 async function admEditUser(userId) {
   var u = _admUsers.find(function(x){ return x.id === userId; });
   if (!u) return;
   _admEditingUserId = userId;
+
   var titleEl = document.getElementById('adm-user-modal-title');
-  if (titleEl) titleEl.textContent = 'Editar Usuário';
+  if (titleEl) titleEl.textContent = 'Editar Usuario';
+
   var fName     = document.getElementById('adm-u-name');
   var fUsername = document.getElementById('adm-u-username');
   var fEmail    = document.getElementById('adm-u-email');
@@ -470,55 +545,41 @@ async function admEditUser(userId) {
   if (fUsername) fUsername.value = u.username || '';
   if (fEmail)    fEmail.value    = u.email || '';
   if (fNivel)    fNivel.value    = String(u.nivel || 1);
-  // Senha: em edição, é opcional
-  var pwdWrap = document.getElementById('adm-u-senha-wrap');
-  if (pwdWrap) pwdWrap.style.display = '';
+
   var pwdEl = document.getElementById('adm-u-senha');
-  if (pwdEl) { pwdEl.value = ''; pwdEl.placeholder = 'Deixe em branco para não alterar'; }
-  // Broker vinculado
-  await _admPopulateBrokerSelect(u.broker_vinculado || '');
-  // botão excluir
+  if (pwdEl) { pwdEl.value = ''; pwdEl.placeholder = 'Deixe em branco para nao alterar'; }
+
   var delBtn = document.getElementById('adm-u-delete-btn');
-  if (delBtn) delBtn.style.display = (currentUser && u.id !== currentUser.id) ? 'inline-flex' : 'none';
+  var isSelf = (currentUser && u.id === currentUser.id);
+  if (delBtn) delBtn.style.display = isSelf ? 'none' : 'inline-flex';
+
   var msgEl = document.getElementById('adm-u-msg');
   if (msgEl) { msgEl.style.display = 'none'; msgEl.textContent = ''; }
+
+  await _admPopulateBrokerSelect(u.broker_vinculado || '');
+
   var overlay = document.getElementById('adm-user-modal');
   if (overlay) overlay.style.display = 'flex';
 }
 
+// Popular select de brokers — busca do backend se necessario
 async function _admPopulateBrokerSelect(selected) {
   var sel = document.getElementById('adm-u-broker');
   if (!sel) return;
 
-  // 1. Tenta via getParamData() (já carregado em memória)
   var params = window.getParamData ? window.getParamData() : [];
-
-  // 2. Se vazio, busca direto do backend
   if (!params.length) {
     try {
       var r = await fetch(API_BASE + '/api/param/', { headers: apiHeaders() });
       if (r.ok) params = await r.json();
-    } catch(e) { /* silencia — usará lista vazia */ }
+    } catch(e) {}
   }
 
-  // 3. Brokers únicos da lista de usuários já carregados
-  var brokersFromUsers = _admUsers
-    .filter(function(u){ return u.nivel === 1 || (u.nivel >= 1 && u.nivel <= 3); })
-    .map(function(u){ return (u.name || u.username || '').trim(); })
-    .filter(Boolean);
+  var brokersParam = params.map(function(p){ return (p.broker||'').trim(); }).filter(Boolean);
+  var brokersUsers = _admUsers.map(function(u){ return (u.name || u.username || '').trim(); }).filter(Boolean);
+  var brokers = [...new Set([...brokersParam, ...brokersUsers])].sort();
 
-  // 4. Brokers da parametrização
-  var brokersFromParam = params.map(function(p){ return (p.broker||'').trim(); }).filter(Boolean);
-
-  // 5. União, deduplicada e ordenada
-  var brokers = [...new Set([...brokersFromParam, ...brokersFromUsers])].sort();
-
-  // 6. Se ainda vazio, usa os próprios usuários como opção
-  if (!brokers.length) {
-    brokers = _admUsers.map(function(u){ return (u.name || u.username || '').trim(); }).filter(Boolean).sort();
-  }
-
-  sel.innerHTML = '<option value="">— Nenhum (sem vínculo) —</option>';
+  sel.innerHTML = '<option value="">-- Nenhum (sem vinculo) --</option>';
   brokers.forEach(function(b){
     var opt = document.createElement('option');
     opt.value = b; opt.textContent = b;
@@ -532,152 +593,163 @@ function closeAdmUserModal() {
   if (overlay) overlay.style.display = 'none';
 }
 
+// Salvar (criar ou editar)
 async function admSaveUser() {
   var msgEl = document.getElementById('adm-u-msg');
   function showMsg(txt, ok) {
     if (!msgEl) return;
     msgEl.textContent = txt;
-    msgEl.style.display = 'block';
-    msgEl.style.background = ok ? 'rgba(34,197,94,.12)' : 'rgba(239,68,68,.12)';
-    msgEl.style.color = ok ? '#4ade80' : '#fca5a5';
-    msgEl.style.border = ok ? '1px solid rgba(34,197,94,.3)' : '1px solid rgba(239,68,68,.3)';
-    msgEl.style.borderRadius = '6px';
-    msgEl.style.padding = '8px 10px';
+    msgEl.style.cssText = 'display:block;font-size:12px;padding:8px 10px;border-radius:6px;margin-top:4px;'
+      + (ok ? 'background:rgba(34,197,94,.12);color:#4ade80;border:1px solid rgba(34,197,94,.3);'
+            : 'background:rgba(239,68,68,.12);color:#fca5a5;border:1px solid rgba(239,68,68,.3);');
   }
 
-  var nome     = (document.getElementById('adm-u-name')||{}).value     || '';
+  var nome     = (document.getElementById('adm-u-name')    ||{}).value || '';
   var username = (document.getElementById('adm-u-username')||{}).value || '';
-  var email    = (document.getElementById('adm-u-email')||{}).value    || '';
+  var email    = (document.getElementById('adm-u-email')   ||{}).value || '';
   var nivel    = parseInt((document.getElementById('adm-u-nivel')||{}).value || '1');
-  var senha    = (document.getElementById('adm-u-senha')||{}).value    || '';
-  var broker   = (document.getElementById('adm-u-broker')||{}).value   || '';
+  var senha    = (document.getElementById('adm-u-senha')   ||{}).value || '';
+  var broker   = (document.getElementById('adm-u-broker')  ||{}).value || '';
 
-  if (!nome.trim()) { showMsg('Informe o nome do usuário.', false); return; }
-  if (!username.trim()) { showMsg('Informe o username.', false); return; }
+  if (!nome.trim())     { showMsg('Informe o nome do usuario.', false); return; }
+  if (!username.trim()) { showMsg('Informe o username.', false);        return; }
 
   var isNew = !_admEditingUserId;
-
-  if (isNew && !senha.trim()) { showMsg('Informe a senha para novo usuário.', false); return; }
+  if (isNew && !senha.trim()) { showMsg('Informe a senha para novo usuario.', false); return; }
 
   var payload = {
-    name: nome.trim(),
-    username: username.trim(),
-    email: email.trim(),
-    nivel: nivel,
-    broker_vinculado: broker || null
+    name:             nome.trim(),
+    username:         username.trim(),
+    email:            email.trim() || null,
+    nivel:            nivel,
+    broker_vinculado: broker.trim() || null
   };
   if (senha.trim()) payload.password = senha.trim();
 
   try {
-    var url = isNew
-      ? API_BASE + '/api/users/'
-      : API_BASE + '/api/users/' + _admEditingUserId;
+    var url    = isNew ? API_BASE + '/api/users/' : API_BASE + '/api/users/' + _admEditingUserId;
     var method = isNew ? 'POST' : 'PUT';
     var res = await fetch(url, {
-      method: method,
+      method:  method,
       headers: apiHeaders(),
-      body: JSON.stringify(payload)
+      body:    JSON.stringify(payload)
     });
     if (res.ok) {
-      showMsg(isNew ? 'Usuário criado com sucesso!' : 'Usuário atualizado!', true);
+      showMsg(isNew ? 'Usuario criado com sucesso!' : 'Usuario atualizado!', true);
       setTimeout(function(){
         closeAdmUserModal();
         adminLoadUsers();
-      }, 900);
+      }, 800);
     } else {
       var d = await res.json().catch(function(){return{};});
-      showMsg(d.detail || ('Erro ' + res.status), false);
+      showMsg(d.detail || ('Erro ' + res.status + ' — verifique se o backend foi atualizado.'), false);
     }
   } catch(e) {
-    showMsg('Sem conexão com o servidor.', false);
+    showMsg('Sem conexao com o servidor.', false);
   }
 }
 
+// Reset de senha pelo admin
 async function admResetSenha(userId, nome) {
   var novaSenha = prompt('Nova senha para ' + nome + ':');
   if (!novaSenha || !novaSenha.trim()) return;
-  if (novaSenha.trim().length < 4) { alert('Senha muito curta (mínimo 4 caracteres).'); return; }
+  if (novaSenha.trim().length < 4) { alert('Senha muito curta (minimo 4 caracteres).'); return; }
   try {
     var res = await fetch(API_BASE + '/api/users/' + userId + '/reset-password', {
-      method: 'POST',
-      headers: apiHeaders(),
+      method: 'POST', headers: apiHeaders(),
       body: JSON.stringify({ new_password: novaSenha.trim() })
     });
-    if (res.ok) {
-      toast('Senha de ' + nome + ' redefinida com sucesso!');
-    } else {
+    if (res.ok) { toast('Senha de ' + nome + ' redefinida!'); }
+    else {
       var d = await res.json().catch(function(){return{};});
       toast(d.detail || 'Erro ao redefinir senha.', 'error');
     }
-  } catch(e) { toast('Sem conexão com o servidor.', 'error'); }
+  } catch(e) { toast('Sem conexao com o servidor.', 'error'); }
 }
 
+// Excluir usuario
 async function admDeleteUser(userId, nome) {
-  if (!confirm('Excluir o usuário "' + nome + '"? Esta ação não pode ser desfeita.')) return;
+  if (!confirm('Excluir o usuario "' + nome + '"? Esta acao nao pode ser desfeita.')) return;
   try {
     var res = await fetch(API_BASE + '/api/users/' + userId, {
-      method: 'DELETE',
-      headers: apiHeaders()
+      method: 'DELETE', headers: apiHeaders()
     });
-    if (res.ok) {
-      toast('Usuário "' + nome + '" excluído.');
-      adminLoadUsers();
-    } else {
+    if (res.ok) { toast('Usuario "' + nome + '" excluido.'); adminLoadUsers(); }
+    else {
       var d = await res.json().catch(function(){return{};});
       toast(d.detail || 'Erro ao excluir.', 'error');
     }
-  } catch(e) { toast('Sem conexão com o servidor.', 'error'); }
+  } catch(e) { toast('Sem conexao com o servidor.', 'error'); }
 }
 
 async function admConfirmDelete() {
   if (!_admEditingUserId) return;
   var u = _admUsers.find(function(x){ return x.id === _admEditingUserId; });
-  var nome = u ? (u.name || u.username) : 'este usuário';
+  var nome = u ? (u.name || u.username) : 'este usuario';
   closeAdmUserModal();
   await admDeleteUser(_admEditingUserId, nome);
 }
 
-// ── Impersonar (visualizar como) ──
+// ── Impersonar (visualizar como outro usuario) ──────────────────────────────
+
 function admImpersonate(userId) {
   var u = _admUsers.find(function(x){ return x.id === userId; });
   if (!u) return;
-  if (!confirm('Visualizar o sistema como "' + (u.name || u.username) + '"?\nVocê poderá restaurar sua sessão depois.')) return;
-  // Salvar sessão atual
-  sessionStorage.setItem('bo_impersonate_backup_token', authToken);
-  sessionStorage.setItem('bo_impersonate_backup_user', JSON.stringify(currentUser));
-  // Simular sessão do outro usuário (sem fazer novo login — apenas UI)
-  currentUser = u;
-  sessionStorage.setItem('bo_user', JSON.stringify(u));
+  var nomeExibido = u.name || u.full_name || u.username;
+  if (!confirm('Visualizar a plataforma como "' + nomeExibido + '"?\nUm banner aparecera para voce restaurar sua sessao.')) return;
+
+  // Salvar sessao atual antes de mudar
+  sessionStorage.setItem('bo_imp_token', authToken);
+  sessionStorage.setItem('bo_imp_user',  JSON.stringify(currentUser));
+
+  // Trocar sessao para o usuario alvo (apenas UI — sem novo token)
+  currentUser = Object.assign({}, u);
+  sessionStorage.setItem('bo_user', JSON.stringify(currentUser));
+
   closeAdminPanel();
-  applySidebarUser(u);
-  toast('👁 Visualizando como ' + (u.name || u.username) + '. Use "Restaurar sessão" para voltar.');
-  // Adicionar botão de restaurar na sidebar footer
-  _admShowRestoreBar(u.name || u.username);
+  applySidebarUser(currentUser);
+  _admShowRestoreBar(nomeExibido);
+  toast('Visualizando como ' + nomeExibido + '. Use o banner para restaurar sua sessao.');
 }
 
 function _admShowRestoreBar(nomeImpersonado) {
-  var existing = document.getElementById('impersonate-bar');
+  var existing = document.getElementById('imp-bar');
   if (existing) existing.remove();
+
   var bar = document.createElement('div');
-  bar.id = 'impersonate-bar';
-  bar.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:9998;background:#E05A3A;color:#fff;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:600;font-family:var(--font-mono);';
-  bar.innerHTML = '👁 Visualizando como: <strong>' + escHtml(nomeImpersonado) + '</strong>'
-    + '<button onclick="admRestoreSession()" style="background:#fff;color:#E05A3A;border:none;border-radius:6px;padding:6px 14px;font-weight:700;cursor:pointer;font-size:12px;">Restaurar minha sessão</button>';
+  bar.id = 'imp-bar';
+  bar.style.cssText = [
+    'position:fixed;bottom:0;left:0;right:0;z-index:9999',
+    'background:#E05A3A;color:#fff',
+    'padding:10px 20px',
+    'display:flex;align-items:center;justify-content:space-between',
+    'font-size:13px;font-weight:600',
+    'box-shadow:0 -2px 12px rgba(0,0,0,.4)'
+  ].join(';');
+
+  bar.innerHTML = '<span>Visualizando como: <strong>' + escHtml(nomeImpersonado) + '</strong></span>'
+    + '<button onclick="admRestoreSession()" style="'
+    + 'background:#fff;color:#E05A3A;border:none;border-radius:6px;'
+    + 'padding:6px 16px;font-weight:700;cursor:pointer;font-size:12px;'
+    + '">Restaurar minha sessao</button>';
+
   document.body.appendChild(bar);
 }
 
 function admRestoreSession() {
-  var backupToken = sessionStorage.getItem('bo_impersonate_backup_token');
-  var backupUser  = sessionStorage.getItem('bo_impersonate_backup_user');
+  var backupToken = sessionStorage.getItem('bo_imp_token');
+  var backupUser  = sessionStorage.getItem('bo_imp_user');
   if (!backupToken || !backupUser) { location.reload(); return; }
+
   authToken   = backupToken;
   currentUser = JSON.parse(backupUser);
   sessionStorage.setItem('bo_token', authToken);
-  sessionStorage.setItem('bo_user', backupUser);
-  sessionStorage.removeItem('bo_impersonate_backup_token');
-  sessionStorage.removeItem('bo_impersonate_backup_user');
+  sessionStorage.setItem('bo_user',  backupUser);
+  sessionStorage.removeItem('bo_imp_token');
+  sessionStorage.removeItem('bo_imp_user');
+
   applySidebarUser(currentUser);
-  var bar = document.getElementById('impersonate-bar');
+  var bar = document.getElementById('imp-bar');
   if (bar) bar.remove();
-  toast('Sessão restaurada! Bem-vindo de volta, ' + (currentUser.name || currentUser.username) + '.');
+  toast('Sessao restaurada. Bem-vindo de volta, ' + (currentUser.name || currentUser.username) + '!');
 }
