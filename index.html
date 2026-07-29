@@ -406,7 +406,7 @@
 </div>
 
 <!-- ══ GERENCIAR USUARIOS — PAINEL PRINCIPAL ══ -->
-<div id="adm-overlay" style="display:none;position:fixed;inset:0;background:rgba(13,17,23,.85);z-index:9000;backdrop-filter:blur(4px);align-items:center;justify-content:center;" onclick="if(event.target===this)closeAdminPanel()">
+<div class="overlay" id="adm-overlay" onclick="if(event.target===this)closeAdminPanel()">
   <div style="background:#111519;border:1px solid #252C35;border-radius:16px;width:100%;max-width:680px;max-height:85vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.7);">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid #252C35;flex-shrink:0;">
       <div>
@@ -428,7 +428,7 @@
 </div>
 
 <!-- ══ GERENCIAR USUARIOS — MODAL CRIAR/EDITAR ══ -->
-<div id="adm-user-modal" style="display:none;position:fixed;inset:0;background:rgba(13,17,23,.85);z-index:9100;backdrop-filter:blur(4px);align-items:center;justify-content:center;" onclick="if(event.target===this)closeAdmUserModal()">
+<div class="overlay" id="adm-user-modal" onclick="if(event.target===this)closeAdmUserModal()">
   <div style="background:#111519;border:1px solid #252C35;border-radius:16px;width:100%;max-width:480px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.7);">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid #252C35;flex-shrink:0;">
       <div id="adm-user-modal-title" style="font-size:15px;font-weight:800;color:#E8EBF0;">Novo Usuario</div>
