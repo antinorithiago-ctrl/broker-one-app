@@ -226,10 +226,8 @@ function applySidebarUser(u) {
     if (av) av.style.background = '';
   }
 
-  // "Gerenciar Usuários" só para Admin (nível 5)
   if (ab) ab.style.display = (u.nivel >= 5) ? 'flex' : 'none';
 
-  // Esconder Cadastros para nível 1
   var secCad = document.getElementById('nav-section-cadastros');
   var cadastrosItems = ['nav-clientes','nav-metas','nav-parametrizacao','sidebar-admin-btn'];
   if (u.nivel < 2) {
@@ -241,7 +239,7 @@ function applySidebarUser(u) {
 }
 
 // ══════════════════════════════════════════════════════════════
-// PAINEL DO USUÁRIO (perfil próprio)
+// PAINEL DO USUARIO (perfil proprio)
 // ══════════════════════════════════════════════════════════════
 
 function openUserPanel() {
@@ -354,60 +352,44 @@ async function saveUserPanel() {
   setTimeout(function(){ closeUserPanel(); }, 900);
 }
 
-// openChangePwd ─ abre painel unificado
 function openChangePwd(){ openUserPanel(); }
-
-
-// ══════════════════════════════════════════════════════════════
-// GERENCIAR USUÁRIOS (painel admin)
-// ══════════════════════════════════════════════════════════════
-
-var _admUsers = []; // cache da lista de usuários
-
-function openAdminPanel() {
-  var overlay = document.getElementById('adm-overlay');
-  if (!overlay) { console.error('adm-overlay não encontrado'); return; }
-  overlay.style.display = 'flex';
-  adminLoadUsers();
-}
-
-function closeAdminPanel() {
-  var overlay = document.getElementById('adm-overlay');
-  if (overlay) overlay.style.display = 'none';
-}
-
-async function adminLoadUsers() {
-  var listEl = document.getElementById('adm-user-list');
-  if (!listEl) return;
-  listEl.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-3);font-size:13px;">Carregando...</div>';
-  try {
-    var res = await fetch(API_BASE + '/api/users/', { headers: apiHeaders() });
-    if (!res.ok) throw new Error('Erro ' + res.status);
-    _admUsers = await res.json();
-    renderAdmUserList();
-  } catch(e) {
-    listEl.innerHTML = '<div style="padding:20px;text-align:center;color:#fca5a5;font-size:13px;">Erro ao carregar usuários.</div>';
-  }
-}
 
 
 // ══════════════════════════════════════════════════════════════
 // GERENCIAR USUARIOS (painel admin)
 // ══════════════════════════════════════════════════════════════
+//
+// Notas de robustez desta secao:
+// 1. O overlay usa classList.add/remove('open') — o mesmo padrao ja usado
+//    por login-overlay, flow-overlay, param-overlay etc no restante do app.
+//    Isso evita qualquer conflito de renderizacao com CSS existente.
+// 2. A lista de brokers (para o select "Broker vinculado") e carregada UMA
+//    UNICA VEZ e mantida em cache (_admBrokerCache). Isso elimina qualquer
+//    race condition: antes, cada clique em "Editar" disparava um fetch
+//    assincrono novo, e se o usuario clicasse em outro registro antes do
+//    fetch anterior terminar, os dados podiam se cruzar entre modais.
+// 3. Os botoes da lista usam data-user-id + um unico listener delegado no
+//    container, em vez de onclick="funcao('nome com aspas')" embutido no
+//    HTML. Isso evita qualquer quebra de atributo por causa de nomes com
+//    apostrofo e garante que o ID clicado e sempre o correto.
+// 4. admEditUser sempre limpa todos os campos do modal ANTES de popular,
+//    e usa um token de requisicao para ignorar respostas fora de ordem.
 
 var _admUsers = [];
+var _admBrokerCache = null;      // cache de brokers (nomes unicos)
 var _admEditingUserId = null;
+var _admOpenToken = 0;           // token anti-race-condition
 
 function openAdminPanel() {
   var overlay = document.getElementById('adm-overlay');
   if (!overlay) { console.error('adm-overlay nao encontrado no HTML'); return; }
-  overlay.style.display = 'flex';
+  overlay.classList.add('open');
   adminLoadUsers();
 }
 
 function closeAdminPanel() {
   var overlay = document.getElementById('adm-overlay');
-  if (overlay) overlay.style.display = 'none';
+  if (overlay) overlay.classList.remove('open');
 }
 
 async function adminLoadUsers() {
@@ -422,8 +404,9 @@ async function adminLoadUsers() {
     }
     _admUsers = await res.json();
     renderAdmUserList();
+    _bindAdmListEvents();
   } catch(e) {
-    listEl.innerHTML = '<div style="padding:24px;text-align:center;color:#fca5a5;font-size:13px;">Erro ao carregar: ' + e.message + '</div>';
+    listEl.innerHTML = '<div style="padding:24px;text-align:center;color:#fca5a5;font-size:13px;">Erro ao carregar: ' + escHtml(e.message) + '</div>';
   }
 }
 
@@ -445,17 +428,15 @@ function renderAdmUserList() {
     var initials = nome.split(' ').map(function(p){return p[0]||'';}).slice(0,2).join('').toUpperCase();
     var nivelLabel = nivelLabels[u.nivel] || ('Nivel ' + u.nivel);
     var nivelColor = nivelColors[u.nivel] || '#6B7685';
-    var isSelf = (currentUser && u.id === currentUser.id);
+    var isSelf = (currentUser && Number(u.id) === Number(currentUser.id));
 
     html += '<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;'
-          + 'background:#161B22;border:1px solid #252C35;border-radius:10px;">';
+          + 'background:#161B22;border:1px solid #252C35;border-radius:10px;" data-row-id="' + u.id + '">';
 
-    // Avatar
     html += '<div style="width:38px;height:38px;border-radius:50%;background:' + nivelColor + ';'
           + 'display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;'
           + 'color:#fff;flex-shrink:0;">' + escHtml(initials) + '</div>';
 
-    // Info
     html += '<div style="flex:1;min-width:0;">';
     html += '<div style="font-size:13px;font-weight:700;color:#E8EBF0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'
           + escHtml(nome)
@@ -474,25 +455,20 @@ function renderAdmUserList() {
     html += '</div>';
     html += '</div>';
 
-    // Botoes
     html += '<div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0;">';
-    html += '<button onclick="admEditUser(' + u.id + ')" '
+    html += '<button data-action="edit" data-user-id="' + u.id + '" '
           + 'style="font-size:11px;font-weight:600;padding:5px 11px;border-radius:6px;'
-          + 'border:1px solid #252C35;background:transparent;color:#E8EBF0;cursor:pointer;">'
-          + 'Editar</button>';
+          + 'border:1px solid #252C35;background:transparent;color:#E8EBF0;cursor:pointer;">Editar</button>';
     if (!isSelf) {
-      html += '<button onclick="admImpersonate(' + u.id + ')" '
+      html += '<button data-action="impersonate" data-user-id="' + u.id + '" '
             + 'style="font-size:11px;font-weight:600;padding:5px 11px;border-radius:6px;'
-            + 'border:1px solid #1e3a5f;background:transparent;color:#60a5fa;cursor:pointer;">'
-            + 'Ver como</button>';
-      html += '<button onclick="admResetSenha(' + u.id + ',\'' + escHtml(nome) + '\')" '
+            + 'border:1px solid #1e3a5f;background:transparent;color:#60a5fa;cursor:pointer;">Ver como</button>';
+      html += '<button data-action="reset-pwd" data-user-id="' + u.id + '" '
             + 'style="font-size:11px;font-weight:600;padding:5px 11px;border-radius:6px;'
-            + 'border:1px solid #3a2020;background:transparent;color:#fca5a5;cursor:pointer;">'
-            + 'Senha</button>';
-      html += '<button onclick="admDeleteUser(' + u.id + ',\'' + escHtml(nome) + '\')" '
+            + 'border:1px solid #3a2020;background:transparent;color:#fca5a5;cursor:pointer;">Senha</button>';
+      html += '<button data-action="delete" data-user-id="' + u.id + '" '
             + 'style="font-size:11px;font-weight:600;padding:5px 11px;border-radius:6px;'
-            + 'border:1px solid #3a2020;background:transparent;color:#fca5a5;cursor:pointer;">'
-            + 'Excluir</button>';
+            + 'border:1px solid #3a2020;background:transparent;color:#fca5a5;cursor:pointer;">Excluir</button>';
     }
     html += '</div>';
     html += '</div>';
@@ -501,17 +477,76 @@ function renderAdmUserList() {
   listEl.innerHTML = html;
 }
 
-// Novo usuario
-async function openNewUserModal() {
-  _admEditingUserId = null;
-  var titleEl = document.getElementById('adm-user-modal-title');
-  if (titleEl) titleEl.textContent = 'Novo Usuario';
+// Listener unico e delegado — evita qualquer problema de escaping em onclick
+function _bindAdmListEvents() {
+  var listEl = document.getElementById('adm-user-list');
+  if (!listEl || listEl._admBound) return; // liga apenas uma vez
+  listEl._admBound = true;
+  listEl.addEventListener('click', function(ev) {
+    var btn = ev.target.closest('button[data-action]');
+    if (!btn) return;
+    var action = btn.getAttribute('data-action');
+    var userId = Number(btn.getAttribute('data-user-id'));
+    var u = _admUsers.find(function(x){ return Number(x.id) === userId; });
+    if (!u) return;
 
+    if (action === 'edit')        admEditUser(userId);
+    else if (action === 'impersonate') admImpersonate(userId);
+    else if (action === 'reset-pwd')   admResetSenha(userId, u.name || u.username);
+    else if (action === 'delete')      admDeleteUser(userId, u.name || u.username);
+  });
+}
+
+// Carrega a lista de brokers (Parametrizacao) UMA VEZ e cacheia
+async function _admGetBrokerList() {
+  if (_admBrokerCache) return _admBrokerCache;
+
+  var params = window.getParamData ? window.getParamData() : [];
+  if (!params.length) {
+    try {
+      var r = await fetch(API_BASE + '/api/param/', { headers: apiHeaders() });
+      if (r.ok) params = await r.json();
+    } catch(e) { params = []; }
+  }
+
+  var brokersParam = params.map(function(p){ return (p.broker||'').trim(); }).filter(Boolean);
+  var brokersUsers = _admUsers.map(function(u){ return (u.name || u.username || '').trim(); }).filter(Boolean);
+  _admBrokerCache = [...new Set([...brokersParam, ...brokersUsers])].sort();
+  return _admBrokerCache;
+}
+
+function _admFillBrokerSelect(brokers, selected) {
+  var sel = document.getElementById('adm-u-broker');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">-- Nenhum (sem vinculo) --</option>';
+  brokers.forEach(function(b){
+    var opt = document.createElement('option');
+    opt.value = b; opt.textContent = b;
+    sel.appendChild(opt);
+  });
+  sel.value = selected || '';
+}
+
+function _admClearModalFields() {
   ['adm-u-name','adm-u-username','adm-u-email','adm-u-senha'].forEach(function(id){
     var el = document.getElementById(id); if (el) el.value = '';
   });
   var nivelEl = document.getElementById('adm-u-nivel');
   if (nivelEl) nivelEl.value = '1';
+  var brokerEl = document.getElementById('adm-u-broker');
+  if (brokerEl) brokerEl.innerHTML = '<option value="">-- Nenhum (sem vinculo) --</option>';
+  var msgEl = document.getElementById('adm-u-msg');
+  if (msgEl) { msgEl.style.display = 'none'; msgEl.textContent = ''; }
+}
+
+// Novo usuario
+async function openNewUserModal() {
+  var myToken = ++_admOpenToken;
+  _admEditingUserId = null;
+  _admClearModalFields();
+
+  var titleEl = document.getElementById('adm-user-modal-title');
+  if (titleEl) titleEl.textContent = 'Novo Usuario';
 
   var pwdEl = document.getElementById('adm-u-senha');
   if (pwdEl) pwdEl.placeholder = 'Minimo 4 caracteres';
@@ -519,24 +554,28 @@ async function openNewUserModal() {
   var delBtn = document.getElementById('adm-u-delete-btn');
   if (delBtn) delBtn.style.display = 'none';
 
-  var msgEl = document.getElementById('adm-u-msg');
-  if (msgEl) { msgEl.style.display = 'none'; msgEl.textContent = ''; }
-
-  await _admPopulateBrokerSelect('');
-
   var overlay = document.getElementById('adm-user-modal');
-  if (overlay) overlay.style.display = 'flex';
+  if (overlay) overlay.classList.add('open');
+
+  var brokers = await _admGetBrokerList();
+  if (myToken !== _admOpenToken) return; // usuario abriu outro modal enquanto isso
+  _admFillBrokerSelect(brokers, '');
 }
 
 // Editar usuario existente
 async function admEditUser(userId) {
-  var u = _admUsers.find(function(x){ return x.id === userId; });
+  var myToken = ++_admOpenToken;
+  var u = _admUsers.find(function(x){ return Number(x.id) === Number(userId); });
   if (!u) return;
-  _admEditingUserId = userId;
+  _admEditingUserId = u.id;
+
+  // 1. Limpa TUDO primeiro — nunca reaproveita valores do usuario anterior
+  _admClearModalFields();
 
   var titleEl = document.getElementById('adm-user-modal-title');
   if (titleEl) titleEl.textContent = 'Editar Usuario';
 
+  // 2. Popula campos sincronos imediatamente com os dados do usuario correto
   var fName     = document.getElementById('adm-u-name');
   var fUsername = document.getElementById('adm-u-username');
   var fEmail    = document.getElementById('adm-u-email');
@@ -549,48 +588,24 @@ async function admEditUser(userId) {
   var pwdEl = document.getElementById('adm-u-senha');
   if (pwdEl) { pwdEl.value = ''; pwdEl.placeholder = 'Deixe em branco para nao alterar'; }
 
+  var isSelf = (currentUser && Number(u.id) === Number(currentUser.id));
   var delBtn = document.getElementById('adm-u-delete-btn');
-  var isSelf = (currentUser && u.id === currentUser.id);
   if (delBtn) delBtn.style.display = isSelf ? 'none' : 'inline-flex';
 
-  var msgEl = document.getElementById('adm-u-msg');
-  if (msgEl) { msgEl.style.display = 'none'; msgEl.textContent = ''; }
-
-  await _admPopulateBrokerSelect(u.broker_vinculado || '');
-
   var overlay = document.getElementById('adm-user-modal');
-  if (overlay) overlay.style.display = 'flex';
-}
+  if (overlay) overlay.classList.add('open');
 
-// Popular select de brokers — busca do backend se necessario
-async function _admPopulateBrokerSelect(selected) {
-  var sel = document.getElementById('adm-u-broker');
-  if (!sel) return;
-
-  var params = window.getParamData ? window.getParamData() : [];
-  if (!params.length) {
-    try {
-      var r = await fetch(API_BASE + '/api/param/', { headers: apiHeaders() });
-      if (r.ok) params = await r.json();
-    } catch(e) {}
-  }
-
-  var brokersParam = params.map(function(p){ return (p.broker||'').trim(); }).filter(Boolean);
-  var brokersUsers = _admUsers.map(function(u){ return (u.name || u.username || '').trim(); }).filter(Boolean);
-  var brokers = [...new Set([...brokersParam, ...brokersUsers])].sort();
-
-  sel.innerHTML = '<option value="">-- Nenhum (sem vinculo) --</option>';
-  brokers.forEach(function(b){
-    var opt = document.createElement('option');
-    opt.value = b; opt.textContent = b;
-    sel.appendChild(opt);
-  });
-  if (selected) sel.value = selected;
+  // 3. Broker select — usa cache; so aplica se este ainda for o modal ativo
+  var brokers = await _admGetBrokerList();
+  if (myToken !== _admOpenToken || _admEditingUserId !== u.id) return;
+  _admFillBrokerSelect(brokers, u.broker_vinculado || '');
 }
 
 function closeAdmUserModal() {
   var overlay = document.getElementById('adm-user-modal');
-  if (overlay) overlay.style.display = 'none';
+  if (overlay) overlay.classList.remove('open');
+  _admEditingUserId = null;
+  _admOpenToken++; // invalida qualquer callback assincrono pendente
 }
 
 // Salvar (criar ou editar)
@@ -604,6 +619,9 @@ async function admSaveUser() {
             : 'background:rgba(239,68,68,.12);color:#fca5a5;border:1px solid rgba(239,68,68,.3);');
   }
 
+  // Guarda o ID sendo editado no momento do clique em Salvar (evita salvar no usuario errado)
+  var editingId = _admEditingUserId;
+
   var nome     = (document.getElementById('adm-u-name')    ||{}).value || '';
   var username = (document.getElementById('adm-u-username')||{}).value || '';
   var email    = (document.getElementById('adm-u-email')   ||{}).value || '';
@@ -614,7 +632,7 @@ async function admSaveUser() {
   if (!nome.trim())     { showMsg('Informe o nome do usuario.', false); return; }
   if (!username.trim()) { showMsg('Informe o username.', false);        return; }
 
-  var isNew = !_admEditingUserId;
+  var isNew = !editingId;
   if (isNew && !senha.trim()) { showMsg('Informe a senha para novo usuario.', false); return; }
 
   var payload = {
@@ -627,7 +645,7 @@ async function admSaveUser() {
   if (senha.trim()) payload.password = senha.trim();
 
   try {
-    var url    = isNew ? API_BASE + '/api/users/' : API_BASE + '/api/users/' + _admEditingUserId;
+    var url    = isNew ? API_BASE + '/api/users/' : API_BASE + '/api/users/' + editingId;
     var method = isNew ? 'POST' : 'PUT';
     var res = await fetch(url, {
       method:  method,
@@ -636,13 +654,14 @@ async function admSaveUser() {
     });
     if (res.ok) {
       showMsg(isNew ? 'Usuario criado com sucesso!' : 'Usuario atualizado!', true);
+      _admBrokerCache = null; // invalida cache (pode ter novo broker)
       setTimeout(function(){
         closeAdmUserModal();
         adminLoadUsers();
       }, 800);
     } else {
       var d = await res.json().catch(function(){return{};});
-      showMsg(d.detail || ('Erro ' + res.status + ' — verifique se o backend foi atualizado.'), false);
+      showMsg(d.detail || ('Erro ' + res.status), false);
     }
   } catch(e) {
     showMsg('Sem conexao com o servidor.', false);
@@ -684,25 +703,24 @@ async function admDeleteUser(userId, nome) {
 
 async function admConfirmDelete() {
   if (!_admEditingUserId) return;
-  var u = _admUsers.find(function(x){ return x.id === _admEditingUserId; });
+  var u = _admUsers.find(function(x){ return Number(x.id) === Number(_admEditingUserId); });
   var nome = u ? (u.name || u.username) : 'este usuario';
+  var idToDelete = _admEditingUserId;
   closeAdmUserModal();
-  await admDeleteUser(_admEditingUserId, nome);
+  await admDeleteUser(idToDelete, nome);
 }
 
 // ── Impersonar (visualizar como outro usuario) ──────────────────────────────
 
 function admImpersonate(userId) {
-  var u = _admUsers.find(function(x){ return x.id === userId; });
+  var u = _admUsers.find(function(x){ return Number(x.id) === Number(userId); });
   if (!u) return;
   var nomeExibido = u.name || u.full_name || u.username;
   if (!confirm('Visualizar a plataforma como "' + nomeExibido + '"?\nUm banner aparecera para voce restaurar sua sessao.')) return;
 
-  // Salvar sessao atual antes de mudar
   sessionStorage.setItem('bo_imp_token', authToken);
   sessionStorage.setItem('bo_imp_user',  JSON.stringify(currentUser));
 
-  // Trocar sessao para o usuario alvo (apenas UI — sem novo token)
   currentUser = Object.assign({}, u);
   sessionStorage.setItem('bo_user', JSON.stringify(currentUser));
 
