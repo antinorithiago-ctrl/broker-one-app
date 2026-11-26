@@ -1,9 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from '../auth'
 
-const inp = { width: '100%', boxSizing: 'border-box' }
-const lbl = { display: 'block', fontFamily: 'var(--font-mono)', fontSize: 10, color: '#6B7685', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 5 }
-
 export default function Login() {
   const { login } = useAuth()
   const [u, setU] = useState('')
@@ -20,33 +17,43 @@ export default function Login() {
   }
 
   return (
-    <div className="login-shell">
-      <form onSubmit={submit} style={{ background: '#111519', border: '1px solid #252C35', borderRadius: 16, padding: '40px 36px 36px', width: '100%', maxWidth: 360, boxShadow: '0 24px 64px rgba(0,0,0,.6)', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 32 }}>
-          <img src="/logo.png" alt="" style={{ width: 44, height: 44, borderRadius: 12 }} />
+    <div className="lg-shell">
+      <div className="lg-brand">
+        <img className="lg-brand-mark" src="/blue3-mark-white.png" alt="" aria-hidden="true" />
+        <div className="lg-logo-row">
+          <img src="/blue3-wordmark-white.png" alt="Blue3" />
+          <span>Empresas</span>
+        </div>
+        <div className="lg-hero">
+          <div className="lg-kicker">Mesa Corporate</div>
+          <h1>Crédito, câmbio e liquidez para empresas.</h1>
+          <p>Simule, acompanhe e execute as operações da mesa em um só lugar.</p>
+        </div>
+        <div className="lg-foot">Blue3 Investimentos · Assessoria XP</div>
+      </div>
+
+      <div className="lg-form-wrap">
+        <form className="lg-card" onSubmit={submit}>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: '#E8EBF0', letterSpacing: '-.02em', lineHeight: 1.1 }}>BROKER <span style={{ color: '#E05A3A' }}>ONE</span></div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#6B7685', letterSpacing: '.1em', textTransform: 'uppercase', marginTop: 2 }}>Mesa Corporate · Blue3 Empresas</div>
+            <img className="lg-icon" src="/logo.png" alt="" />
+            <h2>Acesse sua conta</h2>
+            <p className="lg-sub">Entre com seu usuário para acessar a mesa.</p>
           </div>
-        </div>
-        <div style={{ fontSize: 22, fontWeight: 800, color: '#E05A3A', letterSpacing: '-.02em', marginBottom: 6 }}>Bem-vindo de volta</div>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#6B7685', letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: 28 }}>Acesse sua plataforma</div>
-        <div style={{ marginBottom: 14 }}>
-          <label style={lbl} htmlFor="lu">Usuário</label>
-          <input id="lu" type="text" value={u} onChange={(e) => setU(e.target.value)} placeholder="seu.usuario" autoComplete="username" autoFocus style={inp} />
-        </div>
-        <div style={{ marginBottom: 20 }}>
-          <label style={lbl} htmlFor="lp">Senha</label>
-          <div style={{ position: 'relative' }}>
-            <input id="lp" type={show ? 'text' : 'password'} value={p} onChange={(e) => setP(e.target.value)} placeholder="••••••••" autoComplete="current-password" style={{ ...inp, paddingRight: 56 }} />
-            <button type="button" onClick={() => setShow(!show)} style={{ position: 'absolute', right: 8, top: 6, background: 'none', border: 'none', color: '#6B7685', fontSize: 11, cursor: 'pointer' }}>{show ? 'ocultar' : 'mostrar'}</button>
+          <div>
+            <label className="lg-field" htmlFor="lu">Usuário
+              <input id="lu" type="text" value={u} onChange={(e) => setU(e.target.value)} placeholder="seu.usuario" autoComplete="username" autoFocus />
+            </label>
+            <label className="lg-field" htmlFor="lp">Senha
+              <div style={{ position: 'relative' }}>
+                <input id="lp" type={show ? 'text' : 'password'} value={p} onChange={(e) => setP(e.target.value)} placeholder="••••••••" autoComplete="current-password" style={{ paddingRight: 72 }} />
+                <button type="button" onClick={() => setShow(!show)} style={{ position: 'absolute', right: 10, top: 14, background: 'none', border: 'none', color: 'var(--coral)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>{show ? 'ocultar' : 'mostrar'}</button>
+              </div>
+            </label>
+            {err && <div className="alert err" role="alert">{err}</div>}
+            <button className="btn btn-primary lg-submit" disabled={busy} type="submit">{busy ? 'Entrando...' : 'Entrar'}</button>
           </div>
-        </div>
-        {err && <div className="alert err" role="alert">{err}</div>}
-        <button className="btn btn-primary" disabled={busy} type="submit" style={{ borderRadius: 100, padding: 13, width: '100%', justifyContent: 'center', fontSize: 14, fontWeight: 800 }}>
-          {busy ? 'Entrando...' : 'Entrar'}
-        </button>
-      </form>
+        </form>
+      </div>
     </div>
   )
 }

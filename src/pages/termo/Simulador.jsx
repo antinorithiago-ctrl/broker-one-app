@@ -127,7 +127,7 @@ function ResultadoParcelado({ r }) {
         <table className="data-table">
           <thead><tr><th>#</th><th>Vértice</th><th>Prazo</th><th>Taxa termo</th><th>Qtde</th><th>À vista</th><th>A termo</th><th>Corretagem</th><th>BTC (R$)</th><th>Líquido D+2</th><th>Parcela</th><th>CET</th></tr></thead>
           <tbody>
-            {r.linhas.map((l) => l.erro ? <tr key={l.parcela}><td>{l.parcela}</td><td>{l.vertice}</td><td colSpan={10} style={{ color: '#fca5a5' }}>{l.erro}</td></tr> : (
+            {r.linhas.map((l) => l.erro ? <tr key={l.parcela}><td>{l.parcela}</td><td>{l.vertice}</td><td colSpan={10} style={{ color: 'var(--red)' }}>{l.erro}</td></tr> : (
               <tr key={l.parcela}><td>{l.parcela}</td><td>{l.vertice}</td><td>{l.prazo}</td><td>{pct(l.taxa_termo)}</td><td>{num(l.quantidade, 0)}</td><td>{brl(l.valor_a_vista)}</td><td>{brl(l.valor_a_termo)}</td><td>{brl(l.corretagem_total)}</td><td>{brl(l.taxa_btc_rs + l.corretagem_btc_rs)}</td><td>{brl(l.liquido_d2)}</td><td>{brl(l.valor_parcela)}</td><td>{pct(l.cet)}</td></tr>))}
             <tr style={{ fontWeight: 800 }}><td colSpan={5}>TOTAL</td><td>{brl(t.valor_a_vista)}</td><td>{brl(t.valor_a_termo)}</td><td>{brl(t.corretagem_total)}</td><td>—</td><td>{brl(t.liquido_d2)}</td><td>{brl(t.valor_parcela)}</td><td>{pct(t.cet_mediana)}</td></tr>
           </tbody>

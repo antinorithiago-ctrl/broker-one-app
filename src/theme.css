@@ -1,0 +1,127 @@
+/* ═══════════════════════════════════════════════════════════════
+   Blue3 Empresas — tema (carregado depois de styles.css e app.css)
+   Cores e fontes ficam em :root no styles.css. Aqui ficam as regras
+   de aparência do sistema novo: menu marinho, botões, campos, login, home.
+═══════════════════════════════════════════════════════════════ */
+
+body { background: var(--bg); color: var(--text); font-size: 13.5px; }
+h1, h2, h3 { letter-spacing: -.02em; }
+.mono, .mono-val, .data-table td, .flow-table td, .kpi-value, .stat-val { font-variant-numeric: tabular-nums; }
+
+/* ── Rótulos em caixa-alta ── */
+.form-label, .kpi-label, .stat-label, .nav-section-label, .card h3,
+.data-table th, .flow-table th, .adm-tbl th, .adm-field label, .form-section-label {
+  font-weight: 800; letter-spacing: .1em;
+}
+
+/* ── MENU LATERAL (marinho) ── */
+.sidebar {
+  background: var(--navy);
+  border-right: none;
+  --text: #FFFFFF;
+  --text-2: #B9CBEE;
+  --text-3: #8CA2D4;
+  --border: rgba(255,255,255,.14);
+  --ink-4: rgba(255,255,255,.08);
+  --coral-light: rgba(255,255,255,.10);
+}
+.brand { height: 64px; padding: 0 18px; border-bottom: 1px solid rgba(255,255,255,.12); gap: 10px; }
+.brand img.brand-wordmark { height: 17px; width: auto; border-radius: 0; display: block; }
+.brand-tag { font-size: 9px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #fff; padding-left: 10px; border-left: 1px solid rgba(255,255,255,.4); line-height: 1; }
+.nav-section-label { font-size: 10px; padding: 18px 20px 6px; }
+.nav-item { margin: 2px 10px; padding: 10px 12px; border-radius: 10px; font-size: 13px; }
+.nav-item.active { background: var(--coral); color: #fff; }
+.nav-item.active::before { display: none; }
+.nav-item svg { opacity: .75; }
+.nav-item.active svg, .nav-item:hover svg { opacity: 1; }
+.sidebar-footer { padding: 14px 16px; }
+.sidebar-avatar { width: 34px; height: 34px; background: var(--coral); font-size: 12px; }
+.sidebar-user-name { font-size: 13px; }
+.sidebar-user-role { font-size: 10px; letter-spacing: .02em; }
+
+/* ── Barra superior e abas ── */
+.topbar { background: var(--bg-card); }
+.page-title { font-size: 16px; font-weight: 800; color: var(--navy); }
+.tab.active { color: var(--coral); border-bottom-color: var(--coral); }
+
+/* ── Botões ── */
+.btn { border-radius: var(--radius); padding: 9px 18px; font-size: 13px; letter-spacing: 0; }
+.btn-sm { padding: 6px 12px; font-size: 12px; }
+.btn-primary { background: var(--coral); color: #fff; }
+.btn-primary:hover { background: var(--coral-dark); }
+.btn-secondary { background: var(--navy); color: #fff; border: none; }
+.btn-secondary:hover { background: #0A2A85; color: #fff; }
+.btn-ghost { background: var(--bg-card); color: var(--coral); border: 1.5px solid var(--coral); }
+.btn-ghost:hover { background: var(--coral-light); color: var(--coral-dark); }
+.btn-danger, .btn-danger-ghost { border-radius: var(--radius); }
+.modal-footer .btn-ghost, .adm-btn-edit { color: var(--text-2); border: 1.5px solid var(--border-2); }
+.modal-footer .btn-ghost:hover { color: var(--coral); border-color: var(--coral); background: var(--bg-card); }
+.btn:focus-visible, a:focus-visible, button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+
+/* ── Campos ── */
+input[type=text], input[type=number], input[type=email], input[type=password], input[type=date], textarea, select {
+  background: var(--bg-card); border: 1.5px solid var(--border-2); border-radius: var(--radius); padding: 9px 12px;
+}
+input:focus, textarea:focus, select:focus { border-color: var(--coral); box-shadow: 0 0 0 4px rgba(13,95,194,.12); }
+input[readonly] { background: var(--ink-3); }
+select option { background: #fff; color: var(--text); }
+.search-wrap { background: var(--bg-card); }
+.filter-pill { background: var(--bg-card); }
+.seg { background: var(--ink-4); }
+.seg button.on { background: var(--coral); }
+
+/* ── Cartões, tabelas, indicadores ── */
+.card, .kpi-card, .stat-box, .table-container, .flow-table-wrap, .modal, .adm-panel { box-shadow: none; }
+.kpi-value, .stat-val { color: var(--navy); font-weight: 800; letter-spacing: -.03em; }
+.kpi-value { font-size: 26px; }
+.kpi-value.coral, .stat-val.teal { color: var(--coral); }
+.data-table tr:hover td, .flow-table tr:hover td { background: var(--ink-3); }
+.toast { background: var(--navy); color: #fff; border-color: var(--navy); }
+.overlay, .adm-overlay { backdrop-filter: blur(3px); }
+.imp-bar { background: var(--navy); }
+.imp-bar button { color: var(--navy); }
+
+/* ── Kanban (Pilott / Acompanhamento) ── */
+.k-col { background: var(--col-bg); border-color: var(--border); }
+.k-card { background: var(--bg-card); border-color: var(--border); }
+.k-card:hover { box-shadow: 0 6px 18px rgba(0,26,97,.10); border-color: var(--border-2); }
+
+/* ── LOGIN ── */
+.lg-shell { position: fixed; inset: 0; display: flex; flex-wrap: wrap; background: var(--bg); overflow-y: auto; }
+.lg-brand {
+  flex: 1.1 1 520px; min-width: 0; min-height: 100%; box-sizing: border-box; padding: 56px 72px;
+  background: linear-gradient(140deg, #0D5FC2 0%, #0A3F99 55%, #001A61 100%);
+  position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; color: #fff;
+}
+.lg-brand-mark { position: absolute; right: -120px; bottom: -60px; width: 780px; opacity: .10; pointer-events: none; }
+.lg-logo-row { display: flex; align-items: center; gap: 18px; position: relative; }
+.lg-logo-row img { height: 30px; width: auto; }
+.lg-logo-row span { font-size: 13px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; padding-left: 18px; border-left: 1px solid rgba(255,255,255,.5); line-height: 1; }
+.lg-hero { position: relative; max-width: 560px; display: flex; flex-direction: column; gap: 20px; }
+.lg-kicker { font-size: 12px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: #BFD6F5; }
+.lg-hero h1 { font-size: clamp(36px, 4.2vw, 60px); line-height: 1.04; font-weight: 800; letter-spacing: -.03em; color: #fff; }
+.lg-hero p { font-size: 17px; line-height: 1.6; color: #D4E3F8; }
+.lg-foot { position: relative; font-size: 12px; color: #BFD6F5; }
+.lg-form-wrap { flex: 1 1 440px; min-width: 0; min-height: 100%; box-sizing: border-box; display: flex; align-items: center; justify-content: center; padding: 40px 24px; }
+.lg-card { width: 100%; max-width: 400px; box-sizing: border-box; background: #fff; border: 1px solid var(--border); border-radius: 20px; padding: 40px; display: flex; flex-direction: column; gap: 24px; box-shadow: 0 12px 40px rgba(0,26,97,.08); }
+.lg-card img.lg-icon { width: 56px; height: 56px; border-radius: 14px; }
+.lg-card h2 { font-size: 28px; font-weight: 800; letter-spacing: -.02em; color: var(--navy); margin: 12px 0 8px; }
+.lg-card p.lg-sub { font-size: 14px; line-height: 1.5; color: var(--text-3); }
+.lg-field { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; font-size: 12px; font-weight: 700; color: var(--text); }
+.lg-field input { height: 48px; font-size: 15px; }
+.lg-submit { width: 100%; height: 50px; justify-content: center; font-size: 15px; font-weight: 800; }
+
+/* ── HOME ── */
+.home { padding: 40px 48px 48px; display: flex; flex-direction: column; gap: 28px; max-width: 1200px; width: 100%; box-sizing: border-box; }
+.home-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+.home-kicker { font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--coral); }
+.home-title { font-size: 38px; line-height: 1.1; font-weight: 800; letter-spacing: -.03em; color: var(--navy); margin-top: 6px; }
+.home-date { font-size: 13px; color: var(--text-3); margin-top: 6px; }
+.home-date::first-letter { text-transform: uppercase; }
+.home-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+.home-kpis .kpi-card { padding: 22px; border-radius: var(--radius-lg); }
+.home-kpis .kpi-value { font-size: 40px; line-height: 1.05; margin-top: 6px; }
+.kpi-card.hero { background: linear-gradient(130deg, #0D5FC2, #001A61); border: none; }
+.kpi-card.hero .kpi-label, .kpi-card.hero .kpi-sub { color: #D4E3F8; }
+.kpi-card.hero .kpi-value { color: #fff; }
+.home-hint { font-size: 13px; color: var(--text-3); }

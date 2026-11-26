@@ -164,7 +164,7 @@ export default function Acompanhamento({ reloadKey, onNova }) {
                         <div className="sub">{o.ativo_base || '—'} · {o.tipo === 'bullet' ? 'Bullet' : 'Parcelado'} · {o.n_simulacoes} sim.</div>
                         <div className="money">{brlShort(o.volume)}</div>
                         <div className="row" style={{ marginTop: 6 }}><span className="chip chip-gray">{o.owner.name.split(' ')[0]}</span><span className="muted small">{dbr(o.updated_at || o.created_at)}</span></div>
-                        {o.etapa === 'perdida' && o.motivo_perda && <div className="sub" style={{ color: '#fca5a5' }}>{o.motivo_perda}</div>}
+                        {o.etapa === 'perdida' && o.motivo_perda && <div className="sub" style={{ color: 'var(--red)' }}>{o.motivo_perda}</div>}
                       </div>
                     ))}
                     {cols[k].length === 0 && <div className="k-col-empty">Vazio</div>}

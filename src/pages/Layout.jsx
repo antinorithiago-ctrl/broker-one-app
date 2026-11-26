@@ -88,8 +88,8 @@ export default function Layout() {
     <div id="app-shell" style={{ display: 'flex', width: '100%', height: '100vh', overflow: 'hidden' }}>
       <nav className="sidebar">
         <div className="brand">
-          <img src="/logo.png" alt="" style={{ width: 32, height: 32, borderRadius: 9, flexShrink: 0 }} />
-          <div><div className="brand-text">BROKER <span>ONE</span></div><div className="brand-sub">Mesa Corporate</div></div>
+          <img className="brand-wordmark" src="/blue3-wordmark-white.png" alt="Blue3" />
+          <span className="brand-tag">Empresas</span>
         </div>
         <div className="sidebar-scroll">
           <Item to="/" end icon={I.home}>Home</Item>

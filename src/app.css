@@ -24,11 +24,11 @@
 .kv td { padding: 6px 0; font-size: 12.5px; border-bottom: 1px solid var(--border); color: var(--text-2); }
 .kv td:last-child { text-align: right; color: var(--text); font-variant-numeric: tabular-nums; }
 .kv tr.total td { font-weight: 800; color: var(--text); border-bottom: none; padding-top: 9px; }
-.kv .neg { color: #fca5a5; }
+.kv .neg { color: var(--red); }
 .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 14px; }
 .kpi-value.coral { color: var(--coral); }
 .alert { padding: 9px 12px; border-radius: 8px; font-size: 12px; margin-bottom: 10px; }
-.alert.err { background: var(--red-bg); color: #fca5a5; border: 1px solid rgba(239,68,68,.3); }
+.alert.err { background: var(--red-bg); color: var(--red); border: 1px solid rgba(239,68,68,.3); }
 .alert.warn { background: var(--yellow-bg); color: var(--yellow); border: 1px solid rgba(245,158,11,.3); }
 .alert.info { background: var(--blue-bg); color: var(--blue); border: 1px solid rgba(96,165,250,.3); }
 .muted { color: var(--text-3); }
